@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const User = require("../models/user");
 
 // Protects REST routes. Expects "Authorization: Bearer <token>".
 // Never trusts any user id/username sent in the request body/query —

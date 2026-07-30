@@ -6,7 +6,7 @@
    in sync (ringing / answered / ended) and writes call history.
    ============================================================ */
 
-const User = require('../models/User');
+const User = require('../models/user');
 const Call = require('../models/Call');
 const { emitToUser, isUserOnline } = require('./presence');
 const logger = require('../utils/logger');

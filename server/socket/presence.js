@@ -5,7 +5,7 @@
    push real-time events to a specific user.
    ============================================================ */
 
-const User = require('../models/User');
+const User = require('../models/user');
 
 let io = null;
 const onlineSockets = new Map(); // userId (string) -> Set<socketId>

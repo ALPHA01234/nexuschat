@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body } = require('express-validator');
 
-const User = require('../models/User');
+const User = require('../models/user');
 const VerificationToken = require('../models/VerificationToken');
 const PasswordResetToken = require('../models/PasswordResetToken');
 const { requireAuth } = require('../middleware/auth');

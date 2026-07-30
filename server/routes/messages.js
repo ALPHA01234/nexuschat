@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, query } = require('express-validator');
 
-const User = require('../models/User');
+const User = require('../models/user');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const FriendRequest = require('../models/FriendRequest');

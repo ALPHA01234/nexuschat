@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { body } = require('express-validator');
 
-const User = require('../models/User');
+const User = require('../models/user');
 const FriendRequest = require('../models/FriendRequest');
 const { requireAuth } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/errorHandler');

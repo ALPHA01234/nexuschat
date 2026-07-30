@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const User = require("../models/user");
 
 // Authenticates a Socket.IO connection using the same JWT issued by
 // POST /api/auth/login. The client sends it as socket auth: { token }.

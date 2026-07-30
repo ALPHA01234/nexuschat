@@ -4,7 +4,7 @@
    in sync; this is the primary path when the socket is connected.
    ============================================================ */
 
-const User = require('../models/User');
+const User = require('../models/user');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const FriendRequest = require('../models/FriendRequest');
