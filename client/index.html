@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusChat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-bg-grid"></div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <path d="M20 2 L36 11 V29 L20 38 L4 29 V11 Z" stroke="var(--red)" stroke-width="2" fill="rgba(255,31,61,0.08)"/>
+        <path d="M20 10 L29 15.5 V24.5 L20 30 L11 24.5 V15.5 Z" fill="var(--red)" opacity="0.85"/>
+      </svg>
+      <span class="auth-logo-text">NEXUS<span class="accent">CHAT</span></span>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Sign In</button>
+      <button class="auth-tab" data-tab="register">Create Account</button>
+    </div>
+
+    <!-- LOGIN -->
+    <form id="loginForm" class="auth-form active">
+      <label class="field-label">Username or Email</label>
+      <input type="text" id="loginUsername" class="field-input" placeholder="your_tag or you@email.com" autocomplete="username" required>
+
+      <label class="field-label">Password</label>
+      <input type="password" id="loginPassword" class="field-input" placeholder="••••••••" autocomplete="current-password" required>
+
+      <p id="loginError" class="form-error"></p>
+
+      <button type="submit" class="btn-primary">Connect <span class="btn-arrow">›</span></button>
+      <button type="button" class="link-btn" id="forgotPasswordLink">Forgot your password?</button>
+    </form>
+
+    <!-- REGISTER -->
+    <form id="registerForm" class="auth-form">
+      <label class="field-label">Choose a profile picture</label>
+      <div class="pfp-picker">
+        <div class="pfp-preview" id="pfpPreview">?</div>
+        <div class="pfp-options">
+          <input type="file" id="pfpUpload" accept="image/*" hidden>
+          <button type="button" class="btn-ghost" id="pfpUploadBtn">Upload image</button>
+          <span class="pfp-or">or pick a color</span>
+          <div class="pfp-swatches" id="pfpSwatches"></div>
+        </div>
+      </div>
+
+      <label class="field-label">Username</label>
+      <input type="text" id="regUsername" class="field-input" placeholder="pick_a_unique_tag" required minlength="3" maxlength="16" pattern="[a-zA-Z0-9_]+">
+
+      <label class="field-label">Email</label>
+      <input type="email" id="regEmail" class="field-input" placeholder="you@email.com" required>
+
+      <label class="field-label">Password</label>
+      <input type="password" id="regPassword" class="field-input" placeholder="min. 6 characters" required minlength="6">
+
+      <label class="field-label">Display name <span class="optional">(optional)</span></label>
+      <input type="text" id="regDisplay" class="field-input" placeholder="What friends will see" maxlength="32">
+
+      <p id="registerError" class="form-error"></p>
+
+      <button type="submit" class="btn-primary">Create Account <span class="btn-arrow">›</span></button>
+    </form>
+
+    <!-- EMAIL VERIFICATION -->
+    <form id="verifyForm" class="auth-form">
+      <p class="modal-sub" style="margin-top:0;">We sent a 6-digit code to <strong id="verifyEmailLabel"></strong>.</p>
+      <label class="field-label">Verification code</label>
+      <input type="text" id="verifyOtp" class="field-input otp-input" placeholder="000000" inputmode="numeric" maxlength="6" required>
+
+      <p id="verifyError" class="form-error"></p>
+      <p id="verifyInfo" class="form-info"></p>
+
+      <button type="submit" class="btn-primary">Verify Email <span class="btn-arrow">›</span></button>
+      <button type="button" class="link-btn" id="resendVerifyBtn">Resend code</button>
+      <button type="button" class="link-btn" id="backToLoginFromVerify">Back to sign in</button>
+    </form>
+
+    <!-- FORGOT PASSWORD — step 1: email -->
+    <form id="forgotStep1Form" class="auth-form">
+      <p class="modal-sub" style="margin-top:0;">Enter your account email and we'll send a reset code.</p>
+      <label class="field-label">Email</label>
+      <input type="email" id="forgotEmail" class="field-input" placeholder="you@email.com" required>
+
+      <p id="forgotStep1Error" class="form-error"></p>
+
+      <button type="submit" class="btn-primary">Send Reset Code <span class="btn-arrow">›</span></button>
+      <button type="button" class="link-btn" id="backToLoginFromForgot1">Back to sign in</button>
+    </form>
+
+    <!-- FORGOT PASSWORD — step 2: otp -->
+    <form id="forgotStep2Form" class="auth-form">
+      <p class="modal-sub" style="margin-top:0;">Enter the code sent to <strong id="forgotEmailLabel"></strong>.</p>
+      <label class="field-label">Reset code</label>
+      <input type="text" id="forgotOtp" class="field-input otp-input" placeholder="000000" inputmode="numeric" maxlength="6" required>
+
+      <p id="forgotStep2Error" class="form-error"></p>
+
+      <button type="submit" class="btn-primary">Verify Code <span class="btn-arrow">›</span></button>
+      <button type="button" class="link-btn" id="resendForgotBtn">Resend code</button>
+    </form>
+
+    <!-- FORGOT PASSWORD — step 3: new password -->
+    <form id="forgotStep3Form" class="auth-form">
+      <label class="field-label">New password</label>
+      <input type="password" id="forgotNewPassword" class="field-input" placeholder="min. 6 characters" required minlength="6">
+
+      <label class="field-label">Confirm new password</label>
+      <input type="password" id="forgotConfirmPassword" class="field-input" placeholder="min. 6 characters" required minlength="6">
+
+      <p id="forgotStep3Error" class="form-error"></p>
+
+      <button type="submit" class="btn-primary">Reset Password <span class="btn-arrow">›</span></button>
+    </form>
+
+    <p class="auth-footnote" id="authFootnote">Your account works on any device — sign in anywhere.</p>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="appScreen" class="app-screen">
+
+  <!-- Server rail -->
+  <div class="rail">
+    <div class="rail-icon active" title="Direct Messages">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3v4l5-4h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" fill="currentColor"/></svg>
+    </div>
+    <div class="rail-divider"></div>
+    <div class="rail-icon" id="settingsRailBtn" title="Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 13a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V19a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 17.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 13a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+    </div>
+  </div>
+
+  <!-- Friends / DM list -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span>DIRECT MESSAGES</span>
+      <button id="friendRequestsBtn" class="icon-btn" title="Friend Requests" style="position:relative;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="friendRequestBadge" class="req-badge" style="display:none;">0</span>
+      </button>
+      <button id="addFriendBtn" class="icon-btn" title="Add Friend">+</button>
+    </div>
+    <div class="search-box">
+      <input type="text" id="dmSearch" placeholder="Find conversation...">
+    </div>
+    <div class="dm-list" id="dmList"></div>
+
+    <div class="sidebar-footer">
+      <div class="me-profile-trigger" id="myProfileTrigger">
+        <div class="me-pfp" id="myPfpSmall"></div>
+        <div class="me-info">
+          <div class="me-name" id="myNameSmall"></div>
+          <div class="me-status">
+            <span class="status-dot online"></span>Online
+          </div>
+        </div>
+      </div>
+      <button class="icon-btn" id="logoutBtn" title="Log out">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main panel -->
+  <div class="main-panel">
+
+    <!-- Empty state -->
+    <div id="emptyState" class="empty-state">
+      <svg width="64" height="64" viewBox="0 0 40 40" fill="none">
+        <path d="M20 2 L36 11 V29 L20 38 L4 29 V11 Z" stroke="var(--red)" stroke-width="1.5" fill="rgba(255,31,61,0.05)"/>
+      </svg>
+      <h2>No conversation selected</h2>
+      <p>Add a friend by username or pick a conversation from the left to start chatting.</p>
+      <button class="btn-primary" id="emptyAddFriendBtn">Add a Friend</button>
+    </div>
+
+    <!-- Active chat -->
+    <div id="chatView" class="chat-view">
+      <div class="chat-header">
+        <div class="chat-header-user" id="chatHeaderUserTrigger">
+          <div class="chat-pfp" id="chatPfp"></div>
+          <div>
+            <div class="chat-username" id="chatUsername"></div>
+            <div class="chat-userstatus" id="chatUserStatus">Offline</div>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="icon-btn" id="voiceCallBtn" title="Voice Call">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
+          </button>
+          <button class="icon-btn" id="videoCallBtn" title="Video Call">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          </button>
+          <button class="icon-btn" id="pinnedMessagesBtn" title="Pinned Messages">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>
+          </button>
+          <button class="icon-btn" id="messageSearchBtn" title="Search Messages">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </button>
+          <button class="icon-btn" id="blockFriendBtn" title="Block User">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          </button>
+          <button class="icon-btn danger" id="removeFriendBtn" title="Remove Friend">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="messages" id="messagesArea"></div>
+      <div class="scroll-sentinel-top" id="scrollSentinelTop"></div>
+      <div class="dropzone-overlay" id="dropzoneOverlay">Drop a file to send it</div>
+
+      <div class="reply-preview-bar" id="replyPreviewBar">
+        <div class="reply-preview-content">
+          <span class="reply-preview-label">Replying to <strong id="replyPreviewName"></strong></span>
+          <span class="reply-preview-text" id="replyPreviewText"></span>
+        </div>
+        <button class="icon-btn small" id="cancelReplyBtn">×</button>
+      </div>
+
+      <div class="upload-progress-bar" id="uploadProgressBar" style="display:none;">
+        <div class="upload-progress-fill" id="uploadProgressFill"></div>
+        <span id="uploadProgressLabel">Uploading...</span>
+      </div>
+
+      <div class="composer">
+        <input type="file" id="fileInput" hidden>
+        <button class="icon-btn" id="attachBtn" title="Attach file">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        </button>
+        <button class="icon-btn" id="voiceNoteBtn" title="Record voice note">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+        </button>
+        <input type="text" id="messageInput" class="message-input" placeholder="Message...">
+        <button class="icon-btn send-btn" id="sendBtn" title="Send">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 2 11 13" stroke="currentColor" stroke-width="2"/><path d="M22 2 15 22 11 13 2 9 22 2Z" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <!-- Voice note recording overlay -->
+      <div id="recordingBar" class="recording-bar">
+        <span class="rec-dot"></span>
+        <span class="rec-time" id="recTime">0:00</span>
+        <span class="rec-label">Recording voice note...</span>
+        <button class="btn-ghost small" id="cancelRecBtn">Cancel</button>
+        <button class="btn-primary small" id="stopRecBtn">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODALS ============ -->
+
+<!-- Add friend modal -->
+<div id="addFriendModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Friend</h3>
+      <button class="modal-close" data-close="addFriendModal">×</button>
+    </div>
+    <p class="modal-sub">Search by username to find someone on NexusChat.</p>
+    <input type="text" id="addFriendInput" class="field-input" placeholder="Enter a username" autocomplete="off">
+    <p id="addFriendError" class="form-error"></p>
+    <div id="addFriendResults" class="search-results"></div>
+    <button class="btn-primary full" id="addFriendSubmit">Send Friend Request</button>
+  </div>
+</div>
+
+<!-- Friend requests modal -->
+<div id="friendRequestsModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Friend Requests</h3>
+      <button class="modal-close" data-close="friendRequestsModal">×</button>
+    </div>
+    <p class="modal-sub" style="margin-bottom:6px;">Incoming</p>
+    <div id="incomingRequestsList" class="search-results"></div>
+    <p class="modal-sub" style="margin-top:16px;margin-bottom:6px;">Sent</p>
+    <div id="outgoingRequestsList" class="search-results"></div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div id="settingsModal" class="modal-overlay">
+  <div class="modal settings-modal-large">
+    <div class="settings-layout">
+      <div class="settings-nav">
+        <button class="settings-nav-item active" data-page="account">My Account</button>
+        <button class="settings-nav-item" data-page="profile">Profile</button>
+        <button class="settings-nav-item" data-page="privacy">Privacy</button>
+        <button class="settings-nav-item" data-page="notifications">Notifications</button>
+        <button class="settings-nav-item" data-page="appearance">Appearance</button>
+        <button class="settings-nav-item" data-page="voice">Voice &amp; Video</button>
+        <button class="settings-nav-item" data-page="chat">Chat</button>
+        <button class="settings-nav-item" data-page="accessibility">Accessibility</button>
+        <button class="settings-nav-item" data-page="advanced">Advanced</button>
+        <div class="settings-nav-divider"></div>
+        <button class="settings-nav-item danger" id="settingsLogoutNavBtn">Log Out</button>
+      </div>
+
+      <div class="settings-content">
+        <button class="modal-close settings-close" data-close="settingsModal">×</button>
+
+        <!-- MY ACCOUNT -->
+        <div class="settings-page active" data-page="account">
+          <h3 class="settings-page-title">My Account</h3>
+
+          <div class="settings-section">
+            <label class="field-label">Profile picture</label>
+            <div class="pfp-picker">
+              <div class="pfp-preview" id="settingsPfpPreview">?</div>
+              <div class="pfp-options">
+                <input type="file" id="settingsPfpUpload" accept="image/*" hidden>
+                <button type="button" class="btn-ghost" id="settingsPfpUploadBtn">Upload image</button>
+                <span class="pfp-or">or pick a color</span>
+                <div class="pfp-swatches" id="settingsPfpSwatches"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <label class="field-label">Banner</label>
+            <div class="pfp-picker">
+              <div class="banner-preview" id="settingsBannerPreview"></div>
+              <div class="pfp-options">
+                <input type="file" id="settingsBannerUpload" accept="image/*" hidden>
+                <button type="button" class="btn-ghost" id="settingsBannerUploadBtn">Upload image</button>
+                <span class="pfp-or">or pick a color</span>
+                <div class="pfp-swatches" id="settingsBannerSwatches"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-row-2">
+            <div class="settings-section">
+              <label class="field-label">Username</label>
+              <input type="text" id="accountUsername" class="field-input" disabled>
+            </div>
+            <div class="settings-section">
+              <label class="field-label">Display name</label>
+              <input type="text" id="settingsDisplay" class="field-input" maxlength="32">
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <label class="field-label">Email <span id="accountEmailBadge" class="verify-badge"></span></label>
+            <input type="email" id="accountEmail" class="field-input" disabled>
+          </div>
+
+          <button class="btn-primary" id="saveAccountBtn">Save Changes</button>
+
+          <div class="settings-divider"></div>
+
+          <h4 class="settings-subtitle">Change Password</h4>
+          <div class="settings-section">
+            <label class="field-label">Current password</label>
+            <input type="password" id="currentPasswordInput" class="field-input">
+          </div>
+          <div class="settings-row-2">
+            <div class="settings-section">
+              <label class="field-label">New password</label>
+              <input type="password" id="newPasswordInput" class="field-input">
+            </div>
+            <div class="settings-section">
+              <label class="field-label">Confirm new password</label>
+              <input type="password" id="confirmPasswordInput" class="field-input">
+            </div>
+          </div>
+          <p id="passwordChangeError" class="form-error"></p>
+          <button class="btn-ghost" id="changePasswordBtn">Update Password</button>
+
+          <div class="settings-divider"></div>
+
+          <h4 class="settings-subtitle danger-text">Delete Account</h4>
+          <p class="modal-sub" style="margin-top:0;">This permanently deletes your account, friends, and messages. This cannot be undone.</p>
+          <input type="password" id="deleteAccountPassword" class="field-input" placeholder="Enter your password to confirm">
+          <p id="deleteAccountError" class="form-error"></p>
+          <button class="btn-danger" id="deleteAccountBtn">Delete My Account</button>
+        </div>
+
+        <!-- PROFILE -->
+        <div class="settings-page" data-page="profile">
+          <h3 class="settings-page-title">Profile</h3>
+
+          <div class="settings-section">
+            <label class="field-label">Bio <span class="optional">(optional)</span></label>
+            <textarea id="profileBio" class="field-input" maxlength="190" rows="3" placeholder="Tell people about yourself"></textarea>
+          </div>
+          <div class="settings-row-2">
+            <div class="settings-section">
+              <label class="field-label">Status <span class="optional">(optional)</span></label>
+              <input type="text" id="settingsStatus" class="field-input" maxlength="60" placeholder="What's happening?">
+            </div>
+            <div class="settings-section">
+              <label class="field-label">Pronouns <span class="optional">(optional)</span></label>
+              <input type="text" id="profilePronouns" class="field-input" maxlength="30" placeholder="e.g. she/her">
+            </div>
+          </div>
+          <div class="settings-section">
+            <label class="field-label">Theme color</label>
+            <input type="color" id="profileThemeColor" class="color-input" value="#ff1f3d">
+          </div>
+
+          <button class="btn-primary" id="saveProfileBtn">Save Changes</button>
+
+          <div class="settings-divider"></div>
+          <h4 class="settings-subtitle">Preview</h4>
+          <div class="profile-preview-card" id="profilePreviewCard"></div>
+        </div>
+
+        <!-- PRIVACY -->
+        <div class="settings-page" data-page="privacy">
+          <h3 class="settings-page-title">Privacy</h3>
+
+          <div class="settings-section">
+            <label class="field-label">Who can send you friend requests</label>
+            <select id="privacyFriendRequests" class="field-input">
+              <option value="everyone">Everyone</option>
+              <option value="friends-of-friends">Friends of Friends</option>
+              <option value="none">No one</option>
+            </select>
+          </div>
+
+          <label class="toggle-row"><span>Read receipts</span><input type="checkbox" id="privacyReadReceipts" class="toggle-switch"></label>
+          <label class="toggle-row"><span>Typing indicator</span><input type="checkbox" id="privacyTypingIndicator" class="toggle-switch"></label>
+          <label class="toggle-row"><span>Show my online status</span><input type="checkbox" id="privacyOnlineVisibility" class="toggle-switch"></label>
+
+          <button class="btn-primary" id="savePrivacyBtn">Save Changes</button>
+
+          <div class="settings-divider"></div>
+          <h4 class="settings-subtitle">Blocked Users</h4>
+          <div id="blockedUsersList" class="search-results"></div>
+        </div>
+
+        <!-- NOTIFICATIONS -->
+        <div class="settings-page" data-page="notifications">
+          <h3 class="settings-page-title">Notifications</h3>
+          <label class="toggle-row"><span>Desktop notifications</span><input type="checkbox" id="notifDesktop" class="toggle-switch"></label>
+          <label class="toggle-row"><span>Mention notifications</span><input type="checkbox" id="notifMentions" class="toggle-switch"></label>
+          <label class="toggle-row"><span>Message sounds</span><input type="checkbox" id="notifSounds" class="toggle-switch"></label>
+          <label class="toggle-row"><span>Friend request alerts</span><input type="checkbox" id="notifFriendRequestAlerts" class="toggle-switch"></label>
+          <button class="btn-primary" id="saveNotificationsBtn">Save Changes</button>
+        </div>
+
+        <!-- APPEARANCE -->
+        <div class="settings-page" data-page="appearance">
+          <h3 class="settings-page-title">Appearance</h3>
+
+          <div class="settings-section">
+            <label class="field-label">Theme</label>
+            <div class="segmented" id="appearanceThemeSegmented">
+              <button type="button" class="segmented-btn active" data-value="dark">Dark</button>
+              <button type="button" class="segmented-btn" data-value="light">Light</button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <label class="field-label">Font size</label>
+            <div class="segmented" id="appearanceFontSegmented">
+              <button type="button" class="segmented-btn" data-value="small">Small</button>
+              <button type="button" class="segmented-btn active" data-value="medium">Medium</button>
+              <button type="button" class="segmented-btn" data-value="large">Large</button>
+            </div>
+          </div>
+
+          <label class="toggle-row"><span>Compact mode</span><input type="checkbox" id="appearanceCompact" class="toggle-switch"></label>
+          <label class="toggle-row"><span>Animations</span><input type="checkbox" id="appearanceAnimations" class="toggle-switch"></label>
+
+          <button class="btn-primary" id="saveAppearanceBtn">Save Changes</button>
+        </div>
+
+        <!-- VOICE & VIDEO -->
+        <div class="settings-page" data-page="voice">
+          <h3 class="settings-page-title">Voice &amp; Video</h3>
+
+          <div class="settings-section">
+            <label class="field-label">Input device</label>
+            <select id="voiceInputDevice" class="field-input"><option>Default microphone</option></select>
+          </div>
+          <div class="settings-section">
+            <label class="field-label">Output device</label>
+            <select id="voiceOutputDevice" class="field-input"><option>Default speaker</option></select>
+          </div>
+
+          <label class="toggle-row"><span>Noise suppression</span><input type="checkbox" id="voiceNoiseSuppression" class="toggle-switch" checked></label>
+          <label class="toggle-row"><span>Echo cancellation</span><input type="checkbox" id="voiceEchoCancellation" class="toggle-switch" checked></label>
+
+          <div class="settings-divider"></div>
+          <h4 class="settings-subtitle">Microphone Test</h4>
+          <div class="mic-meter"><div class="mic-meter-fill" id="voiceMicLevel"></div></div>
+          <button class="btn-ghost" id="voiceMicTestBtn">Start Test</button>
+
+          <div class="settings-divider"></div>
+          <h4 class="settings-subtitle">Camera Preview</h4>
+          <video id="voiceCameraPreview" class="camera-preview" autoplay muted playsinline></video>
+          <button class="btn-ghost" id="voiceCameraPreviewBtn">Start Preview</button>
+
+          <div class="settings-divider"></div>
+          <div class="signal-status" id="signalStatus"><span class="status-dot offline"></span> Not connected</div>
+        </div>
+
+        <!-- CHAT -->
+        <div class="settings-page" data-page="chat">
+          <h3 class="settings-page-title">Chat</h3>
+          <label class="toggle-row"><span>Send message with Enter</span><input type="checkbox" id="chatEnterToSend" class="toggle-switch" checked></label>
+          <label class="toggle-row"><span>24-hour timestamps</span><input type="checkbox" id="chatTimestamp24h" class="toggle-switch"></label>
+          <button class="btn-primary" id="saveChatBtn">Save Changes</button>
+        </div>
+
+        <!-- ACCESSIBILITY -->
+        <div class="settings-page" data-page="accessibility">
+          <h3 class="settings-page-title">Accessibility</h3>
+          <label class="toggle-row"><span>Reduce motion</span><input type="checkbox" id="a11yReduceMotion" class="toggle-switch"></label>
+          <label class="toggle-row"><span>High contrast</span><input type="checkbox" id="a11yHighContrast" class="toggle-switch"></label>
+          <button class="btn-primary" id="saveAccessibilityBtn">Save Changes</button>
+        </div>
+
+        <!-- ADVANCED -->
+        <div class="settings-page" data-page="advanced">
+          <h3 class="settings-page-title">Advanced</h3>
+          <div class="settings-section">
+            <label class="field-label">Connection</label>
+            <div class="signal-status" id="advancedConnectionStatus"><span class="status-dot offline"></span> Not connected</div>
+          </div>
+          <div class="settings-section">
+            <label class="field-label">Server</label>
+            <input type="text" class="field-input" id="advancedServerUrl" disabled>
+          </div>
+          <button class="btn-ghost" id="clearCacheBtn">Clear Local Message Cache</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Profile popout (read-only Discord-style card; editing happens in Settings > Profile) -->
+<div id="profileModal" class="modal-overlay">
+  <div class="modal profile-modal">
+    <button class="modal-close" data-close="profileModal">×</button>
+    <div class="profile-banner" id="profileModalBanner"></div>
+    <div class="profile-modal-body">
+      <div class="profile-modal-pfp" id="profileModalPfp"></div>
+      <div class="profile-modal-names">
+        <div class="profile-modal-display" id="profileModalDisplay"></div>
+        <div class="profile-modal-username" id="profileModalUsername"></div>
+      </div>
+      <div class="profile-modal-status" id="profileModalStatus"></div>
+      <div class="profile-modal-section" id="profileModalPronounsWrap">
+        <span class="profile-modal-label">Pronouns</span>
+        <span id="profileModalPronouns"></span>
+      </div>
+      <div class="profile-modal-section" id="profileModalBioWrap">
+        <span class="profile-modal-label">About Me</span>
+        <p id="profileModalBio"></p>
+      </div>
+      <div class="profile-modal-section">
+        <span class="profile-modal-label">Member Since</span>
+        <span id="profileModalJoined"></span>
+      </div>
+      <div class="profile-modal-section" id="profileModalMutualWrap" style="display:none;">
+        <span class="profile-modal-label">Mutual Friends</span>
+        <span id="profileModalMutual"></span>
+      </div>
+      <div class="profile-modal-actions" id="profileModalActions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Message search modal -->
+<div id="messageSearchModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Search Messages</h3>
+      <button class="modal-close" data-close="messageSearchModal">×</button>
+    </div>
+    <input type="text" id="messageSearchInput" class="field-input" placeholder="Search in this conversation..." autocomplete="off">
+    <div id="messageSearchResults" class="search-results"></div>
+  </div>
+</div>
+
+<!-- Pinned messages modal -->
+<div id="pinnedMessagesModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Pinned Messages</h3>
+      <button class="modal-close" data-close="pinnedMessagesModal">×</button>
+    </div>
+    <div id="pinnedMessagesList" class="search-results"></div>
+  </div>
+</div>
+
+<!-- Incoming call modal -->
+<div id="incomingCallModal" class="modal-overlay">
+  <div class="modal call-modal">
+    <div class="call-pfp-ring">
+      <div class="call-pfp" id="incomingCallPfp"></div>
+    </div>
+    <h3 id="incomingCallName">Someone</h3>
+    <p class="modal-sub" id="incomingCallType">Incoming voice call...</p>
+    <div class="call-actions">
+      <button class="btn-danger" id="declineCallBtn">Decline</button>
+      <button class="btn-primary" id="acceptCallBtn">Accept</button>
+    </div>
+  </div>
+</div>
+
+<!-- Active call HUD -->
+<div id="callHud" class="call-hud">
+  <div class="call-hud-scanline"></div>
+  <div class="call-hud-inner" id="callHudInner">
+    <div class="call-video-stage" id="callVideoStage" style="display:none;">
+      <video id="remoteVideo" class="call-video remote" autoplay playsinline></video>
+      <video id="localVideo" class="call-video local" autoplay playsinline muted></video>
+    </div>
+    <div class="call-hud-pfp" id="callHudPfp"></div>
+    <div class="call-hud-name" id="callHudName">—</div>
+    <div class="call-hud-status" id="callHudStatus">CONNECTING<span class="dotdotdot"></span></div>
+    <div class="call-hud-quality" id="callHudQuality">
+      <span class="quality-dot"></span><span class="quality-dot"></span><span class="quality-dot"></span>
+      <span id="callHudQualityLabel">Good</span>
+    </div>
+    <div class="call-hud-timer" id="callHudTimer">00:00</div>
+    <div class="call-hud-bars" id="callHudBars">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="call-hud-actions">
+      <button class="hud-btn" id="muteBtn" title="Mute">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+      </button>
+      <button class="hud-btn" id="deafenBtn" title="Deafen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5Z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5Z"/></svg>
+      </button>
+      <button class="hud-btn" id="cameraToggleBtn" title="Toggle Camera">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7Z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      </button>
+      <button class="hud-btn" id="screenShareBtn" title="Share Screen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </button>
+      <button class="hud-btn end" id="endCallBtn" title="End Call">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.46l-5.27-.61-2.52 2.52a15.045 15.045 0 0 1-6.59-6.59l2.53-2.54L9.05 3H3.03C2.45 13.18 10.82 21.55 21 20.97v-5.51z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<audio id="remoteAudio" autoplay></audio>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/api.js"></script>
+<script src="js/socket.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/friends.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/calls.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
