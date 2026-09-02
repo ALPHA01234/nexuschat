@@ -50,7 +50,51 @@ const corsOptions = { origin: process.env.CORS_ORIGIN || '*' };
 app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS) || 1);
 
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }, // allow serving /uploads to the frontend origin
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+
+      scriptSrc: ["'self'"],
+
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://fonts.googleapis.com"
+      ],
+
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "data:"
+      ],
+
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https:"
+      ],
+
+      connectSrc: [
+        "'self'",
+        "ws:",
+        "wss:"
+      ],
+
+      mediaSrc: [
+        "'self'",
+        "blob:"
+      ],
+
+      objectSrc: ["'none'"],
+
+      baseUri: ["'self'"],
+
+      frameAncestors: ["'self'"]
+    }
+  }
 }));
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '12mb' })); // voice notes are base64-encoded, need generous limit
