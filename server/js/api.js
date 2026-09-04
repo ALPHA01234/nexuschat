@@ -7,7 +7,7 @@
    requests) always comes from the API / Socket.IO.
    ============================================================ */
 
-const SERVER_URL = "https://nexuschat-server-o1t5.onrender.com";
+const SERVER_URL = window.location.origin;
 const API_BASE = `${SERVER_URL}/api`;
 
 const AUTH_KEYS = {

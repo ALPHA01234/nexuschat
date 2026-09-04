@@ -31,8 +31,8 @@ if (missing.length) {
   logger.error(`Missing required environment variables: ${missing.join(', ')}. See .env.example.`);
   process.exit(1);
 }
-if (!process.env.SMTP_HOST) {
-  logger.warn('SMTP_* not set — verification/reset emails will be logged to the console instead of sent.');
+if (!process.env.RESEND_API_KEY) {
+  logger.warn('RESEND_API_KEY not set — verification/reset emails will be logged to the console instead of sent.');
 }
 if (!process.env.TURN_URL) {
   logger.warn('TURN_URL not set — calls will rely on STUN only and may fail across strict NATs/firewalls.');
