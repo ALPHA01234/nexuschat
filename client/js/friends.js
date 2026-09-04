@@ -97,11 +97,22 @@ document.addEventListener('input', (e) => {
 
 // ---------------- Add friend modal (search-based) ----------------
 function openAddFriendModal() {
-  document.getElementById('addFriendInput').value = '';
-  document.getElementById('addFriendError').textContent = '';
-  document.getElementById('addFriendResults').innerHTML = '';
+  const modal = document.getElementById('addFriendModal');
+  const input = document.getElementById('addFriendInput');
+  const error = document.getElementById('addFriendError');
+  const results = document.getElementById('addFriendResults');
+
+  if (!modal || !input || !error || !results) {
+    console.error('[Add Friend] Required DOM is missing', { modal, input, error, results });
+    alert('The Add Friend window could not be opened because part of the interface is missing. Refresh the page and try again.');
+    return;
+  }
+
+  input.value = '';
+  error.textContent = '';
+  results.innerHTML = '';
   openModal('addFriendModal');
-  setTimeout(() => document.getElementById('addFriendInput').focus(), 50);
+  setTimeout(() => input.focus(), 50);
 }
 
 const runUserSearch = debounce(async (query) => {

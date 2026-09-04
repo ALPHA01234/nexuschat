@@ -84,6 +84,17 @@ function switchSettingsPage(page) {
 
 function openSettingsModal() {
   const me = state.me;
+  const requiredIds = [
+    'settingsModal', 'accountUsername', 'settingsDisplay', 'accountEmail',
+    'accountEmailBadge', 'settingsPfpPreview', 'settingsBannerPreview',
+    'profileBio', 'settingsStatus', 'profilePronouns', 'profileThemeColor'
+  ];
+  const missing = requiredIds.filter(id => !document.getElementById(id));
+  if (!me || missing.length) {
+    console.error('[Settings] Cannot open settings', { hasUser: !!me, missing });
+    alert('Settings could not be opened because part of the interface is missing. Refresh the page and try again.');
+    return;
+  }
 
   // Account
   document.getElementById('accountUsername').value = me.username;
