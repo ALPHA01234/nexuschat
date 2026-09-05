@@ -75,7 +75,7 @@ function renderDmList() {
         <span class="status-dot ${presence.online ? 'online' : 'offline'}"></span>
       </div>
       <div class="dm-info">
-        <div class="dm-name">${escapeHtml(fdata.displayName)}</div>
+        <div class="dm-name">${escapeHtml(fdata.displayName)} <span class="dm-tag">@${escapeHtml(fdata.username)}</span></div>
         <div class="dm-preview">${lastMsg ? previewText(lastMsg) : 'Say hello!'}</div>
       </div>
     `;
@@ -97,22 +97,11 @@ document.addEventListener('input', (e) => {
 
 // ---------------- Add friend modal (search-based) ----------------
 function openAddFriendModal() {
-  const modal = document.getElementById('addFriendModal');
-  const input = document.getElementById('addFriendInput');
-  const error = document.getElementById('addFriendError');
-  const results = document.getElementById('addFriendResults');
-
-  if (!modal || !input || !error || !results) {
-    console.error('[Add Friend] Required DOM is missing', { modal, input, error, results });
-    alert('The Add Friend window could not be opened because part of the interface is missing. Refresh the page and try again.');
-    return;
-  }
-
-  input.value = '';
-  error.textContent = '';
-  results.innerHTML = '';
+  document.getElementById('addFriendInput').value = '';
+  document.getElementById('addFriendError').textContent = '';
+  document.getElementById('addFriendResults').innerHTML = '';
   openModal('addFriendModal');
-  setTimeout(() => input.focus(), 50);
+  setTimeout(() => document.getElementById('addFriendInput').focus(), 50);
 }
 
 const runUserSearch = debounce(async (query) => {
@@ -323,7 +312,8 @@ async function removeFriend() {
 function closeActiveChat() {
   state.activeChatWith = null;
   document.getElementById('chatView').classList.remove('active');
-  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('emptyState').style.display = 'none';
+  showHomeView?.();
 }
 
 // ---------------- Block / unblock ----------------

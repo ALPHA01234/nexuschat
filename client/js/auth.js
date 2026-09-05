@@ -23,7 +23,17 @@ function wireAuthScreen() {
   });
 
   document.getElementById('pfpUploadBtn').addEventListener('click', () => document.getElementById('pfpUpload').click());
-  document.getElementById('pfpUpload').addEventListener('change', (e) => handlePfpUpload(e, 'pfpPreview'));
+  document.getElementById('pfpUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 1.5 * 1024 * 1024) { alert('Please choose a profile image smaller than 1.5MB.'); e.target.value=''; return; }
+    openImageCropper(file, 'avatar', (dataUrl) => {
+      const preview = document.getElementById('pfpPreview');
+      preview.innerHTML = `<img src="${dataUrl}" alt="">`;
+      preview.dataset.image = dataUrl;
+      delete preview.dataset.color;
+    }, { allowGif: false });
+  });
 
   document.getElementById('registerForm').addEventListener('submit', (e) => { e.preventDefault(); handleRegister(); });
   document.getElementById('loginForm').addEventListener('submit', (e) => { e.preventDefault(); handleLogin(); });
@@ -70,11 +80,13 @@ async function handleRegister() {
   const displayName = document.getElementById('regDisplay').value.trim();
   const errEl = document.getElementById('registerError');
   errEl.textContent = '';
+  const acceptPolicies = document.getElementById('regPolicyConsent').checked;
+  if (!acceptPolicies) { errEl.textContent = 'Please agree to the Terms, Privacy Policy, and Community Guidelines.'; return; }
 
   try {
     const data = await apiFetch('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, email, password, displayName, avatar: currentRegisterPfp() }),
+      body: JSON.stringify({ username, email, password, displayName, avatar: currentRegisterPfp(), acceptPolicies }),
     });
     goToVerifyScreen(data.email || email);
   } catch (err) {
@@ -233,11 +245,51 @@ async function enterApp() {
 
   connectSocket();
   renderMyProfile();
+  refreshCoinUI();
   applyAppearanceSettings();
+  renderAccountNotice();
+  await detectAdminAccess();
 
-  await Promise.all([loadFriends(), loadFriendRequests(), loadBlockedUsers()]);
+  await Promise.all([loadFriends(), loadFriendRequests(), loadBlockedUsers(), loadCommunities()]);
 
   renderDmList();
+  showHomeView?.();
+}
+
+
+async function detectAdminAccess() {
+  state.isAdmin = false;
+  try {
+    const d = await apiFetch('/admin/me');
+    state.isAdmin = true;
+    state.adminLevel = d.level || 'admin';
+  } catch (e) { state.isAdmin = false; }
+  const rail = document.getElementById('adminRailBtn'); if (rail) rail.style.display = state.isAdmin ? 'grid' : 'none';
+  const badge = document.getElementById('adminMiniBadge'); if (badge) { badge.style.display = state.isAdmin ? 'inline-flex' : 'none'; badge.textContent=(state.adminLevel||'admin').toUpperCase(); }
+  const link = document.getElementById('adminDashboardLink'); if (link) link.style.display = state.isAdmin ? 'inline-flex' : 'none';
+}
+
+function renderAccountNotice() {
+  const el = document.getElementById('accountNotice');
+  if (!el || !state.me) return;
+  const pendingWarning = (state.me.warnings || []).find(w => !w.acknowledgedAt);
+  if (state.me.accountStatus === 'restricted') {
+    el.style.display = 'flex';
+    el.innerHTML = `<span><strong>Account restricted:</strong> ${escapeHtml(state.me.restrictionReason || 'Some actions are temporarily unavailable.')}</span>`;
+  } else if (pendingWarning) {
+    el.style.display = 'flex';
+    el.innerHTML = `<span><strong>Account warning:</strong> ${escapeHtml(pendingWarning.message)}</span><button id="ackWarningBtn" class="btn-ghost small">Acknowledge</button>`;
+    document.getElementById('ackWarningBtn').addEventListener('click', async () => {
+      try {
+        const data = await apiFetch(`/users/me/warnings/${pendingWarning.id}/acknowledge`, { method: 'POST' });
+        state.me = data.user;
+        renderAccountNotice();
+      } catch (err) { alert(err.message); }
+    });
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
 }
 
 function logout() {

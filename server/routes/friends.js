@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 
 const User = require('../models/user');
 const FriendRequest = require('../models/FriendRequest');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireUnrestricted } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/errorHandler');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { emitToUser } = require('../socket');
@@ -80,6 +80,7 @@ router.get('/mutual/:username', requireAuth, asyncHandler(async (req, res) => {
 router.post(
   '/request',
   requireAuth,
+  requireUnrestricted,
   [body('username').trim().notEmpty().withMessage('Username is required.')],
   handleValidation,
   asyncHandler(async (req, res) => {

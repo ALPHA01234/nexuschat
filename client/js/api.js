@@ -29,6 +29,10 @@ const state = {
   typingFrom: null,
   typingTimeout: null,
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+  communities: [],
+  activeCommunity: null,
+  activeCommunityChannel: null,
+  communityVoice: { stream: null, peers: new Map(), communityId: null, channelId: null },
 };
 
 function getToken() { return localStorage.getItem(AUTH_KEYS.token); }

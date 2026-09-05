@@ -92,7 +92,15 @@ function handlePfpUpload(e, previewId) {
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+  // Settings holds live mic/camera preview streams (device test tools).
+  // Always release them on close so the mic/camera indicator doesn't stay
+  // on after the user leaves the Voice & Video page.
+  if (id === 'settingsModal' && typeof stopSettingsMediaPreviews === 'function') {
+    stopSettingsMediaPreviews();
+  }
+}
 
 function playIcon() {
   return `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
@@ -100,6 +108,52 @@ function playIcon() {
 function pauseIcon() {
   return `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>`;
 }
+
+function selectedOutputDeviceId() {
+  return localStorage.getItem('nexus_audio_output') || '';
+}
+async function routeAudioOutput(el) {
+  const deviceId = selectedOutputDeviceId();
+  if (deviceId && typeof el.setSinkId === 'function') {
+    try { await el.setSinkId(deviceId); } catch (e) { console.warn('Audio output routing failed', e); }
+  }
+}
+
+// ---------------- Autoplay-rejection fallback ----------------
+// Browsers routinely block autoplay of remote <audio>/<video> elements
+// (voice/video calls, community VC peers) until the page has a user
+// gesture. Previously this just logged a console warning and left the
+// user with no audio and no way to know why — a real cause of the
+// "audio not audible" reports. Any play() call for a call/VC media
+// element should go through here so the user gets an explicit recovery
+// action instead of silence.
+const _blockedMediaEls = new Set();
+function playMediaWithUnlockFallback(el) {
+  if (!el) return;
+  const result = el.play();
+  if (result && typeof result.catch === 'function') {
+    result.catch(() => {
+      _blockedMediaEls.add(el);
+      const banner = document.getElementById('enableAudioBanner');
+      if (banner) banner.style.display = 'flex';
+    });
+  }
+}
+function forgetBlockedMedia(el) {
+  _blockedMediaEls.delete(el);
+  if (_blockedMediaEls.size === 0) {
+    const banner = document.getElementById('enableAudioBanner');
+    if (banner) banner.style.display = 'none';
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('enableAudioBtn')?.addEventListener('click', () => {
+    _blockedMediaEls.forEach(el => { el.play().catch(() => {}); });
+    _blockedMediaEls.clear();
+    const banner = document.getElementById('enableAudioBanner');
+    if (banner) banner.style.display = 'none';
+  });
+});
 
 function buildVoiceNoteBubble(dataUrl, duration) {
   const wrap = document.createElement('div');
@@ -113,8 +167,7 @@ function buildVoiceNoteBubble(dataUrl, duration) {
   wave.className = 'vn-waveform';
   for (let i = 0; i < 28; i++) {
     const bar = document.createElement('span');
-    const h = 4 + Math.round(Math.random() * 16);
-    bar.style.height = h + 'px';
+    bar.style.height = (4 + Math.round(Math.random() * 16)) + 'px';
     wave.appendChild(bar);
   }
 
@@ -122,14 +175,28 @@ function buildVoiceNoteBubble(dataUrl, duration) {
   dur.className = 'vn-duration';
   dur.textContent = formatDuration(duration);
 
-  const audio = new Audio(dataUrl);
+  const audio = document.createElement('audio');
+  audio.preload = 'metadata';
+  audio.src = dataUrl;
+  audio.volume = 1;
+  audio.muted = false;
+  audio.playsInline = true;
+  audio.className = 'voice-note-audio-engine';
+  audio.style.display = 'none';
+  wrap.appendChild(audio); // attach to DOM; improves playback consistency on some Chromium builds
+  routeAudioOutput(audio);
+
   let playing = false;
-  btn.addEventListener('click', () => {
-    if (playing) {
-      audio.pause();
-    } else {
-      audio.currentTime = 0;
-      audio.play();
+  btn.addEventListener('click', async () => {
+    try {
+      await routeAudioOutput(audio);
+      audio.muted = false;
+      audio.volume = 1;
+      if (playing) audio.pause();
+      else { if (audio.ended) audio.currentTime = 0; await audio.play(); }
+    } catch (err) {
+      console.error('Voice-note playback failed', err);
+      alert('Voice note playback failed. Check Settings > Voice & Video > Output device and Windows volume mixer.');
     }
   });
   audio.addEventListener('play', () => { playing = true; btn.innerHTML = pauseIcon(); });

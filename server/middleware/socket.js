@@ -14,6 +14,7 @@ async function socketAuth(socket, next) {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.id).select("-password");
     if (!user) return next(new Error("User not found"));
+    if (user.accountStatus === 'banned' || user.accountStatus === 'suspended') return next(new Error('Account unavailable'));
 
     socket.userId = user._id.toString();
     socket.username = user.username;

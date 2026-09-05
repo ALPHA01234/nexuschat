@@ -4,8 +4,6 @@
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  installUiIntegrityGuard();
-
   buildSwatches('pfpSwatches');
   buildSwatches('settingsPfpSwatches');
 
@@ -16,63 +14,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   wireSettingsUI();
   wireCalling();
   wireProfilePopout();
+  wireCommunitiesUI();
+  wireRewardsUI();
+  wireProfessionalUX();
 
   document.getElementById('logoutBtn').addEventListener('click', logout);
 
   await restoreSession();
 });
-
-
-// Keep critical modal DOM available. Some browser/runtime combinations can
-// unexpectedly detach large modal trees after initial parsing. We snapshot
-// them as soon as DOMContentLoaded fires and restore them if that happens.
-function installUiIntegrityGuard() {
-  const criticalIds = ['addFriendModal', 'friendRequestsModal', 'settingsModal', 'profileModal'];
-  const snapshots = new Map();
-
-  criticalIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) snapshots.set(id, el.cloneNode(true));
-    else console.error(`[UI integrity] Missing at startup: #${id}`);
-  });
-
-  console.info('[UI integrity] startup', {
-    addFriendInput: !!document.getElementById('addFriendInput'),
-    accountUsername: !!document.getElementById('accountUsername'),
-    settingsModal: !!document.getElementById('settingsModal'),
-    profileModal: !!document.getElementById('profileModal'),
-  });
-
-  const restoreMissing = () => {
-    let restored = false;
-    snapshots.forEach((snapshot, id) => {
-      if (!document.getElementById(id)) {
-        const clone = snapshot.cloneNode(true);
-        document.body.appendChild(clone);
-        console.warn(`[UI integrity] Restored detached #${id}`);
-        restored = true;
-      }
-    });
-    if (restored) {
-      // Re-wire handlers on the freshly restored nodes.
-      wireGlobalModals();
-      wireFriendsUI();
-      wireSettingsUI();
-      wireProfilePopout();
-    }
-  };
-
-  const observer = new MutationObserver(() => {
-    if (
-      !document.getElementById('addFriendModal') ||
-      !document.getElementById('settingsModal') ||
-      !document.getElementById('profileModal')
-    ) {
-      restoreMissing();
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-}
 
 // Generic modal close behavior (X buttons + click-outside), shared by
 // every modal in the app.
@@ -82,7 +31,16 @@ function wireGlobalModals() {
   });
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.classList.remove('active');
+      if (e.target === overlay) closeModal(overlay.id);
     });
+  });
+
+  // Escape closes the top-most open modal/overlay (the Settings close
+  // button visually hints "ESC", so this needs to actually work).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const open = document.querySelectorAll('.modal-overlay.active');
+    if (!open.length) return;
+    closeModal(open[open.length - 1].id);
   });
 }

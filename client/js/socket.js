@@ -44,6 +44,14 @@ function connectSocket() {
   socket.on('friend:rejected', (data) => onFriendRejected(data));
   socket.on('friend:removed', (data) => onFriendRemoved(data));
 
+
+  // ---------------- Communities ----------------
+  socket.on('community:message', (data) => onCommunityMessage(data));
+  socket.on('community:voice-peers', (data) => onCommunityVoicePeers(data));
+  socket.on('community:voice-user-joined', (data) => onCommunityVoiceJoined(data));
+  socket.on('community:voice-user-left', (data) => onCommunityVoiceLeft(data));
+  socket.on('community:voice-signal', (data) => onCommunityVoiceSignal(data));
+
   // ---------------- Call signaling (WebRTC over Socket.IO) ----------------
   socket.on('call:incoming', (data) => onCallIncoming(data));
   socket.on('call:answer', (data) => onCallAnswer(data));

@@ -8,6 +8,14 @@ const PfpSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const BannerSchema = new mongoose.Schema(
+  {
+    type: { type: String, enum: ['color', 'image'], default: 'color' },
+    value: { type: String, default: '#5865f2' },
+  },
+  { _id: false }
+);
+
 const PrivacySchema = new mongoose.Schema(
   {
     friendRequests: { type: String, enum: ['everyone', 'friends-of-friends', 'none'], default: 'everyone' },
@@ -42,6 +50,25 @@ const AppearanceSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const WarningSchema = new mongoose.Schema(
+  {
+    message: { type: String, required: true, maxlength: 500 },
+    createdAt: { type: Date, default: Date.now },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    acknowledgedAt: { type: Date, default: null },
+  },
+  { _id: true }
+);
+
+const PremiumSchema = new mongoose.Schema(
+  {
+    active: { type: Boolean, default: false },
+    until: { type: Date, default: null },
+    source: { type: String, default: 'none', maxlength: 40 },
+  },
+  { _id: false }
+);
+
 const UserSchema = new mongoose.Schema({
   username: {
     type: String,
@@ -54,6 +81,7 @@ const UserSchema = new mongoose.Schema({
     match: /^[a-zA-Z0-9_]+$/,
     index: true,
   },
+  usernameChangedAt: { type: Date, default: null },
   email: {
     type: String,
     required: true,
@@ -68,32 +96,44 @@ const UserSchema = new mongoose.Schema({
 
   displayName: { type: String, default: '', maxlength: 32 },
   avatar: { type: PfpSchema, default: () => ({ type: 'color', value: '#ff1f3d' }) },
-  banner: {
-    type: new mongoose.Schema({
-      type: { type: String, enum: ['color', 'image'], default: 'color' },
-      value: { type: String, default: '#5865f2' },
-    }, { _id: false }),
-    default: () => ({ type: 'color', value: '#5865f2' }),
-  },
+  banner: { type: BannerSchema, default: () => ({ type: 'color', value: '#5865f2' }) },
   bio: { type: String, default: '', maxlength: 190 },
   status: { type: String, default: '', maxlength: 60 },
   pronouns: { type: String, default: '', maxlength: 30 },
   themeColor: { type: String, default: '#ff1f3d' },
   badges: { type: [String], default: [] },
 
+  role: { type: String, enum: ['user', 'moderator', 'admin'], default: 'user', index: true },
+  accountStatus: { type: String, enum: ['active', 'restricted', 'suspended', 'banned'], default: 'active', index: true },
+  restrictionReason: { type: String, default: '', maxlength: 500 },
+  warnings: { type: [WarningSchema], default: [] },
+
+  premium: { type: PremiumSchema, default: () => ({ active: false, until: null, source: 'none' }) },
+  nexusCoins: { type: Number, default: 0, min: 0 },
+
+  policies: {
+    acceptedAt: { type: Date, default: null },
+    termsVersion: { type: String, default: '' },
+    privacyVersion: { type: String, default: '' },
+    guidelinesVersion: { type: String, default: '' },
+  },
+
   online: { type: Boolean, default: false },
   lastSeen: { type: Date, default: Date.now },
-
   blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-
   privacy: { type: PrivacySchema, default: () => ({}) },
   notifications: { type: NotificationSchema, default: () => ({}) },
   appearance: { type: AppearanceSchema, default: () => ({}) },
-
   createdAt: { type: Date, default: Date.now },
 });
 
 UserSchema.index({ username: 'text', displayName: 'text' });
+
+UserSchema.methods.hasPremium = function () {
+  if (!this.premium?.active) return false;
+  if (!this.premium.until) return true;
+  return new Date(this.premium.until) > new Date();
+};
 
 UserSchema.methods.toPublicJSON = function () {
   return {
@@ -107,6 +147,7 @@ UserSchema.methods.toPublicJSON = function () {
     pronouns: this.pronouns,
     themeColor: this.themeColor,
     badges: this.badges,
+    premium: { active: this.hasPremium() },
     online: this.privacy?.onlineVisibility === false ? false : this.online,
     lastSeen: this.lastSeen,
     joinedAt: this.createdAt,
@@ -118,9 +159,20 @@ UserSchema.methods.toPrivateJSON = function () {
     ...this.toPublicJSON(),
     email: this.email,
     emailVerified: this.emailVerified,
+    role: this.role,
+    accountStatus: this.accountStatus,
+    restrictionReason: this.restrictionReason,
+    warnings: (this.warnings || []).map(w => ({
+      id: w._id,
+      message: w.message,
+      createdAt: w.createdAt,
+      acknowledgedAt: w.acknowledgedAt,
+    })),
+    nexusCoins: this.nexusCoins || 0,
     privacy: this.privacy,
     notifications: this.notifications,
     appearance: this.appearance,
+    policies: this.policies,
     blockedUsers: this.blockedUsers,
   };
 };

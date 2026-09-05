@@ -7,6 +7,8 @@
 function renderMyProfile() {
   if (!state.me) return;
   document.getElementById('myNameSmall').textContent = state.me.displayName || state.me.username;
+  const tag = document.getElementById('myTagSmall');
+  if (tag) tag.textContent = '@' + state.me.username;
   applyPfpToEl(document.getElementById('myPfpSmall'), state.me.avatar, state.me.displayName);
 }
 

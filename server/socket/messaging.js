@@ -53,7 +53,11 @@ function registerMessagingHandlers(socket) {
         return;
       }
 
-      const me = await User.findById(userId).select('blockedUsers username');
+      const me = await User.findById(userId).select('blockedUsers username accountStatus restrictionReason');
+      if (me.accountStatus === 'restricted') {
+        if (ack) ack({ ok: false, message: me.restrictionReason || 'Your account is currently restricted from sending messages.' });
+        return;
+      }
       if ((me.blockedUsers || []).some(id => id.equals(recipient._id)) ||
           (recipient.blockedUsers || []).some(id => id.equals(userId))) {
         if (ack) ack({ ok: false, message: 'You cannot message this user.' });

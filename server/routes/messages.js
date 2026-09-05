@@ -5,7 +5,7 @@ const User = require('../models/user');
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const FriendRequest = require('../models/FriendRequest');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireUnrestricted } = require('../middleware/auth');
 const { handleValidation } = require('../middleware/errorHandler');
 const { messageLimiter } = require('../middleware/rateLimiter');
 const { asyncHandler } = require('../utils/asyncHandler');
@@ -100,6 +100,7 @@ router.get(
 router.post(
   '/send',
   requireAuth,
+  requireUnrestricted,
   messageLimiter,
   [
     body('to').trim().notEmpty(),

@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="professional.css">
 </head>
 <body>
 
@@ -61,10 +62,15 @@
       <input type="email" id="regEmail" class="field-input" placeholder="you@email.com" required>
 
       <label class="field-label">Password</label>
-      <input type="password" id="regPassword" class="field-input" placeholder="min. 6 characters" required minlength="6">
+      <input type="password" id="regPassword" class="field-input" placeholder="min. 8 characters" required minlength="8">
 
       <label class="field-label">Display name <span class="optional">(optional)</span></label>
       <input type="text" id="regDisplay" class="field-input" placeholder="What friends will see" maxlength="32">
+
+      <label class="policy-consent">
+        <input type="checkbox" id="regPolicyConsent" required>
+        <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a>, <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>, and <a href="guidelines.html" target="_blank" rel="noopener">Community Guidelines</a>.</span>
+      </label>
 
       <p id="registerError" class="form-error"></p>
 
@@ -112,10 +118,10 @@
     <!-- FORGOT PASSWORD — step 3: new password -->
     <form id="forgotStep3Form" class="auth-form">
       <label class="field-label">New password</label>
-      <input type="password" id="forgotNewPassword" class="field-input" placeholder="min. 6 characters" required minlength="6">
+      <input type="password" id="forgotNewPassword" class="field-input" placeholder="min. 8 characters" required minlength="8">
 
       <label class="field-label">Confirm new password</label>
-      <input type="password" id="forgotConfirmPassword" class="field-input" placeholder="min. 6 characters" required minlength="6">
+      <input type="password" id="forgotConfirmPassword" class="field-input" placeholder="min. 8 characters" required minlength="8">
 
       <p id="forgotStep3Error" class="form-error"></p>
 
@@ -123,25 +129,33 @@
     </form>
 
     <p class="auth-footnote" id="authFootnote">Your account works on any device — sign in anywhere.</p>
+    <div class="auth-legal-links"><a href="terms.html" target="_blank">Terms</a><span>·</span><a href="privacy.html" target="_blank">Privacy</a><span>·</span><a href="guidelines.html" target="_blank">Guidelines</a></div>
   </div>
 </div>
 
 <!-- ============ MAIN APP ============ -->
 <div id="appScreen" class="app-screen">
+  <div id="accountNotice" class="account-notice" style="display:none;"></div>
 
-  <!-- Server rail -->
+  <!-- Communities / navigation rail -->
   <div class="rail">
-    <div class="rail-icon active" title="Direct Messages">
+    <button class="rail-icon active" id="dmHomeRailBtn" title="Direct Messages">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3v4l5-4h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z" fill="currentColor"/></svg>
-    </div>
+    </button>
     <div class="rail-divider"></div>
-    <div class="rail-icon" id="settingsRailBtn" title="Settings">
+    <div id="communityRailList" class="community-rail-list"></div>
+    <button class="rail-icon rail-add" id="createCommunityRailBtn" title="Create or join a community">+</button>
+    <div class="rail-spacer"></div>
+    <button class="rail-icon" id="rewardsRailBtn" title="Rewards & Nexus Coins">N</button>
+    <a class="rail-icon admin-rail" id="adminRailBtn" href="admin.html" title="Admin Dashboard" style="display:none;">A</a>
+    <button class="rail-icon" id="settingsRailBtn" title="Settings">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 13a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V19a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 17.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 13a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
-    </div>
+    </button>
   </div>
 
   <!-- Friends / DM list -->
   <div class="sidebar">
+    <div id="dmSidebarView" class="sidebar-inner-view">
     <div class="sidebar-header">
       <span>DIRECT MESSAGES</span>
       <button id="friendRequestsBtn" class="icon-btn" title="Friend Requests" style="position:relative;">
@@ -160,28 +174,63 @@
         <div class="me-pfp" id="myPfpSmall"></div>
         <div class="me-info">
           <div class="me-name" id="myNameSmall"></div>
-          <div class="me-status">
-            <span class="status-dot online"></span>Online
-          </div>
+          <div class="me-tag" id="myTagSmall"></div>
+          <div class="me-status"><span class="status-dot online"></span>Online <span id="adminMiniBadge" class="admin-mini-badge" style="display:none;">ADMIN</span></div>
         </div>
       </div>
+      <button class="coin-wallet-chip compact" id="coinWalletChipDm" title="Open Rewards"><span class="coin-mark small">N</span><strong id="topCoinBalanceDm">0</strong></button>
       <button class="icon-btn" id="logoutBtn" title="Log out">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
       </button>
+    </div>
+    </div>
+
+    <div id="communitySidebarView" class="sidebar-inner-view" style="display:none;">
+      <div class="community-sidebar-head"><div class="community-head-copy"><strong id="communitySidebarName">Community</strong><small id="communitySidebarDescription"></small></div><div class="community-head-actions"><button class="icon-btn" id="communityInviteBtn" title="Copy invite">↗</button><button class="icon-btn" id="communityManageBtn" title="Community settings">⌄</button></div></div>
+      <div class="community-channel-actions"><button class="sidebar-action" id="communityChannelCreateBtn">＋ Create Channel</button><button class="sidebar-action" id="communityMembersBtn">Members</button></div>
+      <div id="communityChannels" class="community-channels"></div>
+      <div id="communityMemberList" class="community-member-list" style="display:none;"></div><div id="communityManagePanel" class="community-manage-panel" style="display:none;"><div class="community-manage-title">Community Settings</div><button class="btn-ghost small" id="rotateInviteBtn">Rotate Invite Code</button><button class="btn-ghost small danger" id="leaveCommunityBtn">Leave Community</button><button class="btn-danger small" id="deleteCommunityBtn" style="display:none;">Delete Community</button></div>
+      <div class="community-join-box"><input id="communityJoinCode" class="field-input" placeholder="Invite code"><button class="btn-ghost small" id="joinCommunityBtn">Join</button></div>
+      <div class="sidebar-footer community-footer"><div class="coin-wallet-chip" id="coinWalletChip"><span class="coin-mark small">N</span><div><strong id="topCoinBalance">0</strong><small>Nexus Coins</small></div></div></div>
     </div>
   </div>
 
   <!-- Main panel -->
   <div class="main-panel">
 
-    <!-- Empty state -->
-    <div id="emptyState" class="empty-state">
-      <svg width="64" height="64" viewBox="0 0 40 40" fill="none">
-        <path d="M20 2 L36 11 V29 L20 38 L4 29 V11 Z" stroke="var(--red)" stroke-width="1.5" fill="rgba(255,31,61,0.05)"/>
-      </svg>
-      <h2>No conversation selected</h2>
-      <p>Add a friend by username or pick a conversation from the left to start chatting.</p>
-      <button class="btn-primary" id="emptyAddFriendBtn">Add a Friend</button>
+    <!-- Home / Friends dashboard -->
+    <section id="homeView" class="home-view active">
+      <header class="home-topbar">
+        <div class="home-title"><span class="home-friends-icon">●</span><strong>Friends</strong></div>
+        <nav class="home-tabs" aria-label="Friends filters">
+          <button class="home-tab active" data-home-tab="online">Online</button>
+          <button class="home-tab" data-home-tab="all">All</button>
+          <button class="home-tab" data-home-tab="pending">Pending <span id="homePendingBadge" class="mini-count" style="display:none">0</span></button>
+          <button class="home-tab add" data-home-tab="add">Add Friend</button>
+        </nav>
+      </header>
+      <div class="home-body">
+        <main class="friends-workspace">
+          <div class="friends-search-wrap"><span>⌕</span><input id="homeFriendSearch" placeholder="Search friends" autocomplete="off"></div>
+          <div id="homeFriendSummary" class="friends-summary">ONLINE — 0</div>
+          <div id="homeFriendsList" class="home-friends-list"></div>
+          <div id="homePendingPanel" class="home-pending-panel" style="display:none"></div>
+          <div id="homeAddPanel" class="home-add-panel" style="display:none">
+            <div class="home-add-card"><h2>Add Friend</h2><p>You can add friends with their NexusChat username.</p><div class="home-add-row"><input id="homeAddFriendInput" class="field-input" placeholder="Enter a username"><button id="homeAddFriendBtn" class="btn-primary small">Send Friend Request</button></div><p id="homeAddFriendState" class="form-info"></p></div>
+          </div>
+        </main>
+        <aside class="activity-panel">
+          <h3>Active Now</h3>
+          <div id="activeNowList" class="active-now-list"></div>
+          <div class="activity-empty" id="activeNowEmpty"><strong>It’s quiet for now.</strong><span>When friends are online, they’ll show up here.</span></div>
+          <button id="homeRewardsShortcut" class="nexus-reward-shortcut"><span class="coin-mark">N</span><div><strong>Nexus Rewards</strong><small>Earn and use Nexus Coins</small></div><span>›</span></button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Legacy fallback empty state -->
+    <div id="emptyState" class="empty-state" style="display:none">
+      <h2>No conversation selected</h2><button class="btn-primary" id="emptyAddFriendBtn">Add a Friend</button>
     </div>
 
     <!-- Active chat -->
@@ -191,6 +240,7 @@
           <div class="chat-pfp" id="chatPfp"></div>
           <div>
             <div class="chat-username" id="chatUsername"></div>
+            <div class="chat-user-tag" id="chatUserTag"></div>
             <div class="chat-userstatus" id="chatUserStatus">Offline</div>
           </div>
         </div>
@@ -256,6 +306,17 @@
         <button class="btn-primary small" id="stopRecBtn">Send</button>
       </div>
     </div>
+
+    <div id="communityView" class="community-view">
+      <div class="community-main-header"><strong id="communityHeaderName"># channel</strong><span>Community</span></div>
+      <div id="communityTextPane" class="community-text-pane">
+        <div id="communityMessages" class="community-messages"></div>
+        <form id="communityComposer" class="community-composer"><input id="communityMessageInput" class="message-input" maxlength="4000" placeholder="Message channel..."><button class="icon-btn send-btn" type="submit">➤</button></form>
+      </div>
+      <div id="communityVoicePane" class="community-voice-pane" style="display:none;">
+        <div class="voice-orb">◖</div><h2 id="communityVoiceTitle">Not connected</h2><p>Voice connected through WebRTC. Speaking members glow green.</p><div id="communityVoiceParticipants" class="vc-participants"></div><div class="vc-controls"><button class="btn-ghost" id="communityMuteBtn">Mute</button><button class="btn-danger" id="leaveCommunityVoiceBtn">Disconnect</button></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -303,6 +364,8 @@
         <button class="settings-nav-item" data-page="voice">Voice &amp; Video</button>
         <button class="settings-nav-item" data-page="chat">Chat</button>
         <button class="settings-nav-item" data-page="accessibility">Accessibility</button>
+        <button class="settings-nav-item" data-page="membership">Premium &amp; Coins</button>
+        <button class="settings-nav-item" data-page="legal">Legal &amp; Safety</button>
         <button class="settings-nav-item" data-page="advanced">Advanced</button>
         <div class="settings-nav-divider"></div>
         <button class="settings-nav-item danger" id="settingsLogoutNavBtn">Log Out</button>
@@ -313,10 +376,10 @@
 
         <!-- MY ACCOUNT -->
         <div class="settings-page active" data-page="account">
-          <h3 class="settings-page-title">My Account</h3>
+          <div class="account-settings-hero"><div><span class="settings-eyebrow">IDENTITY</span><h3 class="settings-page-title">My Account</h3><p>Manage how your account looks and how people find you.</p></div><span id="accountSaveState" class="save-state"></span></div>
 
           <div class="settings-section">
-            <label class="field-label">Profile picture</label>
+            <label class="field-label">Profile picture <span class="premium-inline">GIF requires Premium</span></label>
             <div class="pfp-picker">
               <div class="pfp-preview" id="settingsPfpPreview">?</div>
               <div class="pfp-options">
@@ -329,7 +392,7 @@
           </div>
 
           <div class="settings-section">
-            <label class="field-label">Banner</label>
+            <label class="field-label">Banner <span class="premium-inline">GIF requires Premium</span></label>
             <div class="pfp-picker">
               <div class="banner-preview" id="settingsBannerPreview"></div>
               <div class="pfp-options">
@@ -344,7 +407,7 @@
           <div class="settings-row-2">
             <div class="settings-section">
               <label class="field-label">Username</label>
-              <input type="text" id="accountUsername" class="field-input" disabled>
+              <input type="text" id="accountUsername" class="field-input" minlength="3" maxlength="16" pattern="[a-zA-Z0-9_]+">
             </div>
             <div class="settings-section">
               <label class="field-label">Display name</label>
@@ -525,6 +588,38 @@
           <button class="btn-primary" id="saveAccessibilityBtn">Save Changes</button>
         </div>
 
+        <!-- PREMIUM & COINS -->
+        <div class="settings-page" data-page="membership">
+          <h3 class="settings-page-title">Premium &amp; Nexus Coins</h3>
+          <div class="membership-card">
+            <div>
+              <div class="membership-kicker">CURRENT PLAN</div>
+              <div class="membership-plan" id="membershipPlan">Free</div>
+              <div class="modal-sub" id="membershipPlanDetails">Free accounts use standard upload limits and static profile media.</div>
+            </div>
+            <div class="coin-balance"><span class="coin-mark">N</span><div><strong id="nexusCoinBalance">0</strong><small>Nexus Coins</small></div></div>
+          </div>
+          <div class="settings-divider"></div>
+          <h4 class="settings-subtitle">Plan features</h4>
+          <div class="feature-grid">
+            <div class="feature-tile"><strong>Animated profile</strong><span>GIF profile pictures and banners with Premium.</span></div>
+            <div class="feature-tile"><strong>Larger files</strong><span>Higher per-file upload limit with Premium.</span></div>
+            <div class="feature-tile"><strong>Nexus Coins</strong><span>Wallet infrastructure is ready. Rewarded ads will be connected after an ad provider is approved.</span></div>
+          </div>
+          <button class="btn-ghost" id="earnCoinsBtn" disabled>Rewarded ads — coming soon</button>
+        </div>
+
+        <!-- LEGAL & SAFETY -->
+        <div class="settings-page" data-page="legal">
+          <h3 class="settings-page-title">Legal &amp; Safety</h3>
+          <div class="legal-card"><strong>Terms of Service</strong><p>Rules for using NexusChat and your account.</p><a class="btn-ghost inline-link" href="terms.html" target="_blank">Read Terms</a></div>
+          <div class="legal-card"><strong>Privacy Policy</strong><p>What account and service data NexusChat stores and why.</p><a class="btn-ghost inline-link" href="privacy.html" target="_blank">Read Privacy Policy</a></div>
+          <div class="legal-card"><strong>Community Guidelines</strong><p>Behavior and content standards for conversations and profiles.</p><a class="btn-ghost inline-link" href="guidelines.html" target="_blank">Read Guidelines</a></div>
+          <div class="settings-divider"></div>
+          <p class="modal-sub">Policy version accepted: <strong id="acceptedPolicyVersion">—</strong></p>
+          <p class="modal-sub">Accepted on: <strong id="acceptedPolicyDate">—</strong></p>
+        </div>
+
         <!-- ADVANCED -->
         <div class="settings-page" data-page="advanced">
           <h3 class="settings-page-title">Advanced</h3>
@@ -537,6 +632,7 @@
             <input type="text" class="field-input" id="advancedServerUrl" disabled>
           </div>
           <button class="btn-ghost" id="clearCacheBtn">Clear Local Message Cache</button>
+          <a class="btn-ghost inline-link" id="adminDashboardLink" href="admin.html" style="display:none;margin-top:10px;">Open Admin Dashboard</a>
         </div>
       </div>
     </div>
@@ -599,6 +695,107 @@
   </div>
 </div>
 
+
+<!-- Community Hub -->
+<div id="communityHubModal" class="modal-overlay">
+  <div class="modal community-hub-modal">
+    <button class="modal-close" data-close="communityHubModal">×</button>
+    <div class="community-hub-hero"><span class="settings-eyebrow">NEXUS COMMUNITIES</span><h2>Find your people.</h2><p>Create a private community or join one with an invite code.</p></div>
+    <div class="community-hub-grid">
+      <button class="community-hub-card" id="hubCreateCommunityBtn"><strong>Create Community</strong><span>Start with #general and a voice lounge.</span></button>
+      <div class="community-hub-card join"><strong>Join Community</strong><span>Enter an invite code from a friend.</span><div class="hub-join-row"><input id="hubJoinCode" class="field-input" placeholder="Invite code"><button class="btn-primary" id="hubJoinBtn">Join</button></div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Create Community -->
+<div id="communityCreateModal" class="modal-overlay">
+  <div class="modal nexus-dialog community-create-dialog">
+    <button class="modal-close" data-close="communityCreateModal">×</button>
+    <div class="dialog-icon">N</div>
+    <h2>Create a Community</h2>
+    <p class="modal-sub">A shared home for friends, text channels and voice rooms.</p>
+    <form id="communityCreateForm" class="dialog-form">
+      <label class="field-label">Community name</label>
+      <input id="communityNameInput" class="field-input" maxlength="40" minlength="2" placeholder="e.g. Night Owls" required>
+      <label class="field-label">Description</label>
+      <textarea id="communityDescriptionInput" class="field-input" maxlength="220" rows="3" placeholder="What is this community about?"></textarea>
+      <p id="communityCreateError" class="form-error"></p>
+      <div class="modal-actions"><button type="button" class="btn-ghost" data-close="communityCreateModal">Cancel</button><button type="submit" class="btn-primary">Create Community</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Create Community Channel -->
+<div id="channelCreateModal" class="modal-overlay">
+  <div class="modal nexus-dialog">
+    <button class="modal-close" data-close="channelCreateModal">×</button>
+    <h2>Create Channel</h2>
+    <form id="channelCreateForm" class="dialog-form">
+      <label class="field-label">Channel name</label>
+      <input id="channelNameInput" class="field-input" maxlength="40" placeholder="new-channel" required>
+      <label class="field-label">Channel type</label>
+      <select id="channelTypeInput" class="field-input"><option value="text">Text channel</option><option value="voice">Voice channel</option></select>
+      <p id="channelCreateError" class="form-error"></p>
+      <div class="modal-actions"><button type="button" class="btn-ghost" data-close="channelCreateModal">Cancel</button><button type="submit" class="btn-primary">Create Channel</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Professional Community Settings -->
+<div id="communitySettingsModal" class="modal-overlay">
+  <div class="modal community-settings-modal">
+    <aside class="community-settings-nav">
+      <div class="community-settings-name" id="csNavName">Community</div>
+      <button class="cs-tab active" data-cs-tab="overview">Overview</button>
+      <button class="cs-tab" data-cs-tab="channels">Channels & Categories</button>
+      <button class="cs-tab" data-cs-tab="members">Members</button>
+      <button class="cs-tab" data-cs-tab="invites">Invites</button>
+      <button class="cs-tab" data-cs-tab="moderation">Moderation</button>
+      <div class="cs-divider"></div>
+      <button class="cs-tab danger" id="csLeaveBtn">Leave Community</button>
+      <button class="cs-tab danger" id="csDeleteBtn">Delete Community</button>
+    </aside>
+    <main class="community-settings-content">
+      <button class="modal-close community-settings-close" data-close="communitySettingsModal">×</button>
+      <section class="cs-page active" data-cs-page="overview"><h2>Community Overview</h2><p class="section-lead">Identity and basic information.</p><label class="field-label">Name</label><input id="csName" class="field-input" maxlength="40"><label class="field-label">Description</label><textarea id="csDescription" class="field-input" rows="4" maxlength="220"></textarea><label class="field-label">Icon URL / data image</label><input id="csIcon" class="field-input" placeholder="Optional"><button id="csSaveOverview" class="btn-primary small">Save Changes</button></section>
+      <section class="cs-page" data-cs-page="channels"><div class="cs-title-row"><div><h2>Channels & Categories</h2><p class="section-lead">Organize where conversations happen.</p></div><button id="csAddCategory" class="btn-primary small">+ Category</button></div><div id="csCategoriesList" class="cs-list"></div></section>
+      <section class="cs-page" data-cs-page="members"><h2>Members</h2><p class="section-lead">Manage access and community roles.</p><div id="csMembersList" class="cs-list"></div></section>
+      <section class="cs-page" data-cs-page="invites"><h2>Invites</h2><p class="section-lead">Create controlled invite codes.</p><div class="invite-code-card"><code id="csInviteCode">—</code><button id="csCopyInvite" class="btn-ghost small">Copy</button></div><div class="settings-row-2"><div><label class="field-label">Expires after</label><select id="csInviteExpiry" class="field-input"><option value="">Never</option><option value="1">1 hour</option><option value="24">24 hours</option><option value="168">7 days</option></select></div><div><label class="field-label">Max uses</label><input id="csInviteMaxUses" class="field-input" type="number" min="1" placeholder="Unlimited"></div></div><button id="csRotateInvite" class="btn-primary small">Generate New Invite</button><p id="csInviteMeta" class="form-info"></p></section>
+      <section class="cs-page" data-cs-page="moderation"><h2>Moderation</h2><p class="section-lead">Keep the community healthy.</p><div class="settings-card"><strong>Moderation foundation</strong><p>Owners and admins can kick members from the Members tab. Bans are enforced server-side in this build.</p></div><div id="csBannedList" class="cs-list"></div></section>
+    </main>
+  </div>
+</div>
+
+<!-- Nexus Rewards -->
+<div id="rewardsModal" class="modal-overlay">
+  <div class="modal rewards-modal-pro">
+    <button class="modal-close rewards-close" data-close="rewardsModal">×</button>
+    <header class="rewards-hero"><div><span class="settings-eyebrow">NEXUS REWARDS</span><h2>Turn activity into perks.</h2><p>Complete trusted activities and build your Nexus Coin balance.</p></div><div class="rewards-balance"><span class="coin-mark">N</span><div><strong id="rewardsCoinBalance">0</strong><small>Nexus Coins</small></div></div></header>
+    <div class="rewards-grid">
+      <section class="reward-card quiz"><span class="reward-kicker">DAILY</span><h3>Daily Quiz</h3><p id="dailyQuizQuestion">Loading...</p><div id="dailyQuizOptions" class="quiz-options"></div><button id="dailyQuizSubmitBtn" class="btn-primary small">Claim 10 Coins</button><p id="dailyQuizState" class="form-info"></p></section>
+      <section class="reward-card ad"><span class="reward-kicker">REWARDED AD</span><h3>Watch & Earn</h3><p>Rewarded ads become available only after a verified ad provider is configured.</p><button id="rewardedAdBtn" class="btn-primary small" disabled>Watch Rewarded Ad</button><p id="rewardedAdStatus" class="form-info"></p></section>
+      <section class="reward-card wide"><span class="reward-kicker">COMING NEXT</span><h3>Quests & Community Challenges</h3><div class="quest-placeholder-row"><span>Weekly streaks</span><span>Community events</span><span>Premium cosmetics</span></div></section>
+    </div>
+  </div>
+</div>
+
+<!-- Image crop / position modal -->
+<div id="cropModal" class="modal-overlay">
+  <div class="modal crop-modal">
+    <div class="modal-header"><h3 id="cropModalTitle">Adjust image</h3><button class="modal-close" data-close="cropModal">×</button></div>
+    <div id="cropViewport" class="crop-viewport avatar-mode"><img id="cropImage" alt="Crop preview"></div>
+    <div class="crop-controls">
+      <label>Zoom <input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+      <label>Horizontal <input id="cropX" type="range" min="-1" max="1" step="0.01" value="0"></label>
+      <label>Vertical <input id="cropY" type="range" min="-1" max="1" step="0.01" value="0"></label>
+    </div>
+    <p class="modal-sub" id="cropHint">Move and zoom until it looks right.</p>
+    <div class="modal-actions"><button class="btn-ghost" data-close="cropModal">Cancel</button><button class="btn-primary" id="cropApplyBtn">Use this crop</button></div>
+  </div>
+</div>
+
 <!-- Incoming call modal -->
 <div id="incomingCallModal" class="modal-overlay">
   <div class="modal call-modal">
@@ -622,7 +819,10 @@
       <video id="remoteVideo" class="call-video remote" autoplay playsinline></video>
       <video id="localVideo" class="call-video local" autoplay playsinline muted></video>
     </div>
-    <div class="call-hud-pfp" id="callHudPfp"></div>
+    <div class="call-participants-voice" id="callVoiceParticipants">
+      <div class="call-person"><div class="call-hud-pfp" id="callHudPfp"></div><small id="callRemoteLabel">Friend</small></div>
+      <div class="call-person"><div class="call-hud-pfp local-call-pfp" id="localCallPfp"></div><small>You</small></div>
+    </div>
     <div class="call-hud-name" id="callHudName">—</div>
     <div class="call-hud-status" id="callHudStatus">CONNECTING<span class="dotdotdot"></span></div>
     <div class="call-hud-quality" id="callHudQuality">
@@ -655,17 +855,27 @@
 
 <audio id="remoteAudio" autoplay></audio>
 
+<div id="enableAudioBanner" class="enable-audio-banner" style="display:none;">
+  <span>Your browser blocked autoplay audio.</span>
+  <button class="btn-primary small" id="enableAudioBtn">Enable Audio</button>
+</div>
+
+
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/api.js"></script>
 <script src="js/socket.js"></script>
 <script src="js/notifications.js"></script>
+<script src="js/cropper.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/friends.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/calls.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/communities.js"></script>
+<script src="js/rewards.js"></script>
+<script src="js/professional.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {
   "name": "nexuschat-server",
-  "version": "2.0.0",
-  "description": "NexusChat production backend \u2014 Express + MongoDB + Socket.IO",
+  "version": "7.0.0-oai",
+  "description": "NexusChat OAI professional comparison build based on Phase 3",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

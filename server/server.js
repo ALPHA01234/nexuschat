@@ -21,6 +21,9 @@ const friendRoutes = require('./routes/friends');
 const messageRoutes = require('./routes/messages');
 const uploadRoutes = require('./routes/uploads');
 const callRoutes = require('./routes/calls');
+const adminRoutes = require('./routes/admin');
+const communityRoutes = require('./routes/communities');
+const rewardRoutes = require('./routes/rewards');
 
 const { initSocket } = require('./socket');
 
@@ -31,8 +34,8 @@ if (missing.length) {
   logger.error(`Missing required environment variables: ${missing.join(', ')}. See .env.example.`);
   process.exit(1);
 }
-if (!process.env.RESEND_API_KEY) {
-  logger.warn('RESEND_API_KEY not set — verification/reset emails will be logged to the console instead of sent.');
+if (!process.env.GMAIL_REFRESH_TOKEN && !process.env.RESEND_API_KEY) {
+  logger.warn('No email provider configured — OTP emails will be logged to the console. Configure Gmail API or Resend.');
 }
 if (!process.env.TURN_URL) {
   logger.warn('TURN_URL not set — calls will rely on STUN only and may fail across strict NATs/firewalls.');
@@ -85,7 +88,8 @@ app.use(helmet({
 
       mediaSrc: [
         "'self'",
-        "blob:"
+        "blob:",
+        "data:"
       ],
 
       objectSrc: ["'none'"],
@@ -114,6 +118,9 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/calls', callRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/communities', communityRoutes);
+app.use('/api/rewards', rewardRoutes);
 
 // Exposes ICE server config (STUN always, TURN if configured) so the client
 // never needs to hardcode credentials.
@@ -144,7 +151,8 @@ mongoose
     process.exit(1);
   });
 
-initSocket(httpServer, corsOptions);
+const io = initSocket(httpServer, corsOptions);
+app.set('io', io);
 
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {

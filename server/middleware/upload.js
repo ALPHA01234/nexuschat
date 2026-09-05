@@ -19,23 +19,18 @@ const ALLOWED_MIME = new Set([
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).slice(0, 10);
-    const safeName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
-    cb(null, safeName);
+    const ext = path.extname(file.originalname).slice(0, 10).toLowerCase();
+    cb(null, `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`);
   },
 });
 
 function fileFilter(req, file, cb) {
-  if (!ALLOWED_MIME.has(file.mimetype)) {
-    return cb(new Error('That file type is not supported.'));
-  }
+  if (!ALLOWED_MIME.has(file.mimetype)) return cb(new Error('That file type is not supported.'));
   cb(null, true);
 }
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 25 * 1024 * 1024, files: 1 }, // 25MB cap per file
-});
+// Global hard ceiling. The route applies the lower Free/Premium plan limit after auth.
+const hardLimitMb = Math.max(Number(process.env.PREMIUM_UPLOAD_MB) || 100, 25);
+const upload = multer({ storage, fileFilter, limits: { fileSize: hardLimitMb * 1024 * 1024, files: 1 } });
 
 module.exports = { upload, UPLOAD_DIR };

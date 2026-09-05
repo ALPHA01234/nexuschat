@@ -46,8 +46,12 @@ function registerCallHandlers(socket) {
   const userId = socket.userId;
 
   // ---------------- Offer (start a call) ----------------
-  socket.on('call:offer', async ({ to, offer, callType }) => {
+  socket.on('call:offer', async ({ callId: requestedCallId, to, offer, callType }) => {
     try {
+      const caller = await User.findById(userId).select('accountStatus restrictionReason');
+      if (!caller || caller.accountStatus === 'restricted') {
+        return socket.emit('call:error', { reason: 'restricted', message: caller?.restrictionReason || 'Your account is currently restricted from starting calls.', to });
+      }
       const callee = await User.findOne({ username: String(to).trim().toLowerCase() }).select('_id username');
       if (!callee) return socket.emit('call:error', { reason: 'not-found', to });
 
@@ -64,7 +68,13 @@ function registerCallHandlers(socket) {
       }
 
       const callDoc = await Call.create({ caller: userId, callee: callee._id, type: callType === 'video' ? 'video' : 'voice' });
-      const callId = newCallId();
+      // The caller creates the id before ICE gathering so its first
+      // candidates can be routed correctly. Keep a server fallback for
+      // older clients.
+      const candidateId = typeof requestedCallId === 'string' && requestedCallId.length <= 100
+        ? requestedCallId
+        : '';
+      const callId = candidateId || newCallId();
 
       const timer = setTimeout(async () => {
         const call = activeCalls.get(callId);

@@ -19,9 +19,11 @@ function wireSettingsUI() {
 
   // Account page
   document.getElementById('settingsPfpUploadBtn').addEventListener('click', () => document.getElementById('settingsPfpUpload').click());
-  document.getElementById('settingsPfpUpload').addEventListener('change', (e) => handlePfpUpload(e, 'settingsPfpPreview'));
+  document.getElementById('settingsPfpPreview').addEventListener('click', () => document.getElementById('settingsPfpUpload').click());
+  document.getElementById('settingsPfpUpload').addEventListener('change', handleSettingsPfpUpload);
   document.getElementById('settingsBannerUploadBtn').addEventListener('click', () => document.getElementById('settingsBannerUpload').click());
-  document.getElementById('settingsBannerUpload').addEventListener('change', (e) => handleBannerUpload(e));
+  document.getElementById('settingsBannerPreview').addEventListener('click', () => document.getElementById('settingsBannerUpload').click());
+  document.getElementById('settingsBannerUpload').addEventListener('change', handleBannerUpload);
   document.getElementById('saveAccountBtn').addEventListener('click', saveAccountPage);
   document.getElementById('changePasswordBtn').addEventListener('click', changePassword);
   document.getElementById('deleteAccountBtn').addEventListener('click', deleteAccount);
@@ -47,6 +49,8 @@ function wireSettingsUI() {
   populateDeviceLists();
   document.getElementById('voiceMicTestBtn').addEventListener('click', toggleMicTest);
   document.getElementById('voiceCameraPreviewBtn').addEventListener('click', toggleCameraPreview);
+  document.getElementById('voiceInputDevice')?.addEventListener('change',e=>localStorage.setItem('nexus_audio_input',e.target.value));
+  document.getElementById('voiceOutputDevice')?.addEventListener('change',e=>localStorage.setItem('nexus_audio_output',e.target.value));
 
   // Chat page
   document.getElementById('saveChatBtn').addEventListener('click', saveChatPage);
@@ -84,17 +88,6 @@ function switchSettingsPage(page) {
 
 function openSettingsModal() {
   const me = state.me;
-  const requiredIds = [
-    'settingsModal', 'accountUsername', 'settingsDisplay', 'accountEmail',
-    'accountEmailBadge', 'settingsPfpPreview', 'settingsBannerPreview',
-    'profileBio', 'settingsStatus', 'profilePronouns', 'profileThemeColor'
-  ];
-  const missing = requiredIds.filter(id => !document.getElementById(id));
-  if (!me || missing.length) {
-    console.error('[Settings] Cannot open settings', { hasUser: !!me, missing });
-    alert('Settings could not be opened because part of the interface is missing. Refresh the page and try again.');
-    return;
-  }
 
   // Account
   document.getElementById('accountUsername').value = me.username;
@@ -154,9 +147,26 @@ function openSettingsModal() {
   document.getElementById('a11yReduceMotion').checked = !!me.appearance?.reduceMotion;
   document.getElementById('a11yHighContrast').checked = !!me.appearance?.highContrast;
 
-  // Advanced
+  // Premium & coins
+  const premium = !!me.premium?.active;
+  document.getElementById('membershipPlan').textContent = premium ? 'NexusChat Premium' : 'Free';
+  document.getElementById('membershipPlanDetails').textContent = premium
+    ? 'Animated profile media and higher upload limits are enabled.'
+    : 'Static profile media and standard upload limits are enabled.';
+  document.getElementById('nexusCoinBalance').textContent = Number(me.nexusCoins || 0).toLocaleString();
+
+  // Legal
+  document.getElementById('acceptedPolicyVersion').textContent = me.policies?.termsVersion || 'Legacy account';
+  document.getElementById('acceptedPolicyDate').textContent = me.policies?.acceptedAt ? new Date(me.policies.acceptedAt).toLocaleString() : 'Not recorded';
+
+  // Advanced / admin
   document.getElementById('advancedServerUrl').value = SERVER_URL;
   updateSignalStatusUI(!!(state.socket && state.socket.connected));
+  const adminLink = document.getElementById('adminDashboardLink');
+  if (adminLink) {
+    adminLink.style.display = (me.role === 'admin' || me.role === 'moderator') ? 'inline-flex' : 'none';
+    apiFetch('/admin/me').then(() => { adminLink.style.display = 'inline-flex'; }).catch(() => {});
+  }
 
   switchSettingsPage('account');
   openModal('settingsModal');
@@ -174,24 +184,35 @@ function applyBannerToEl(el, banner) {
   }
 }
 
+function handleSettingsPfpUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 1.5 * 1024 * 1024) { alert('Please choose a profile image smaller than 1.5MB.'); e.target.value=''; return; }
+  openImageCropper(file, 'avatar', (dataUrl) => {
+    const preview = document.getElementById('settingsPfpPreview');
+    preview.innerHTML = `<img src="${dataUrl}" alt="">`;
+    preview.dataset.image = dataUrl;
+    delete preview.dataset.color;
+  }, { allowGif: !!state.me?.premium?.active });
+}
+
 function handleBannerUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { alert('Please choose an image smaller than 2MB.'); return; }
-  const reader = new FileReader();
-  reader.onload = (ev) => {
+  if (file.size > 2.5 * 1024 * 1024) { alert('Please choose a banner image smaller than 2.5MB.'); e.target.value=''; return; }
+  openImageCropper(file, 'banner', (dataUrl) => {
     const preview = document.getElementById('settingsBannerPreview');
-    applyBannerToEl(preview, { type: 'image', value: ev.target.result });
-    preview.dataset.image = ev.target.result;
+    applyBannerToEl(preview, { type: 'image', value: dataUrl });
+    preview.dataset.image = dataUrl;
     delete preview.dataset.color;
-  };
-  reader.readAsDataURL(file);
+  }, { allowGif: !!state.me?.premium?.active });
 }
 
 // ---------------- Save handlers (one per page, each PUTs only what changed conceptually) ----------------
 async function persistUser(patch) {
   const data = await apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(patch) });
   state.me = data.user;
+  refreshCoinUI();
   renderMyProfile();
   renderDmList();
   applyAppearanceSettings();
@@ -199,15 +220,23 @@ async function persistUser(patch) {
 }
 
 async function saveAccountPage() {
+  const oldUsername = state.me.username;
   const pfpPreview = document.getElementById('settingsPfpPreview');
   const avatar = pfpPreview.dataset.image ? { type: 'image', value: pfpPreview.dataset.image } : { type: 'color', value: pfpPreview.dataset.color || PFP_COLORS[0] };
   const bannerPreview = document.getElementById('settingsBannerPreview');
   const banner = bannerPreview.dataset.image ? { type: 'image', value: bannerPreview.dataset.image } : { type: 'color', value: bannerPreview.dataset.color || '#5865f2' };
+  const username = document.getElementById('accountUsername').value.trim().toLowerCase();
   const displayName = document.getElementById('settingsDisplay').value.trim();
 
   try {
-    await persistUser({ displayName, avatar, banner });
+    await persistUser({ username, displayName, avatar, banner });
+    localStorage.setItem(AUTH_KEYS.username, state.me.username);
+    if (state.me.username !== oldUsername) {
+      disconnectSocket();
+      connectSocket();
+    }
     if (state.activeChatWith) openChat(state.activeChatWith);
+    const ok=document.getElementById('accountSaveState'); if(ok){ok.textContent='Changes saved.'; setTimeout(()=>ok.textContent='',2200);}
   } catch (err) {
     alert(err.message);
   }
@@ -427,26 +456,51 @@ async function populateDeviceLists() {
       inputSel.appendChild(opt);
     });
 
-    if (speakers.length === 0) outputSel.innerHTML = '<option>Default speaker</option>';
+    if (speakers.length === 0) outputSel.innerHTML = '<option value="">Default speaker</option>';
     speakers.forEach((d, i) => {
       const opt = document.createElement('option');
       opt.value = d.deviceId;
       opt.textContent = d.label || `Speaker ${i + 1}`;
       outputSel.appendChild(opt);
     });
+    const savedIn=localStorage.getItem('nexus_audio_input')||''; const savedOut=localStorage.getItem('nexus_audio_output')||'';
+    if(savedIn && [...inputSel.options].some(o=>o.value===savedIn)) inputSel.value=savedIn;
+    if(savedOut && [...outputSel.options].some(o=>o.value===savedOut)) outputSel.value=savedOut;
   } catch (e) { /* device enumeration may be blocked before mic permission is granted */ }
 }
 
 let micTestStream = null;
 let micTestRafId = null;
-async function toggleMicTest() {
-  const btn = document.getElementById('voiceMicTestBtn');
+let micTestAudioCtx = null;
+
+// Called whenever the Settings modal closes (see closeModal in utils.js),
+// so device-test streams never keep the mic/camera indicator on in the
+// background after the user leaves the Voice & Video page.
+function stopSettingsMediaPreviews() {
   if (micTestStream) {
     micTestStream.getTracks().forEach(t => t.stop());
     micTestStream = null;
     cancelAnimationFrame(micTestRafId);
-    document.getElementById('voiceMicLevel').style.width = '0%';
-    btn.textContent = 'Start Test';
+    if (micTestAudioCtx) { micTestAudioCtx.close().catch(() => {}); micTestAudioCtx = null; }
+    const level = document.getElementById('voiceMicLevel');
+    if (level) level.style.width = '0%';
+    const micBtn = document.getElementById('voiceMicTestBtn');
+    if (micBtn) micBtn.textContent = 'Start Test';
+  }
+  if (cameraPreviewStream) {
+    cameraPreviewStream.getTracks().forEach(t => t.stop());
+    cameraPreviewStream = null;
+    const video = document.getElementById('voiceCameraPreview');
+    if (video) video.srcObject = null;
+    const camBtn = document.getElementById('voiceCameraPreviewBtn');
+    if (camBtn) camBtn.textContent = 'Start Preview';
+  }
+}
+
+async function toggleMicTest() {
+  const btn = document.getElementById('voiceMicTestBtn');
+  if (micTestStream) {
+    stopSettingsMediaPreviews();
     return;
   }
   try {
@@ -455,6 +509,7 @@ async function toggleMicTest() {
     populateDeviceLists();
 
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    micTestAudioCtx = ctx;
     const source = ctx.createMediaStreamSource(micTestStream);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
@@ -476,17 +531,13 @@ async function toggleMicTest() {
 let cameraPreviewStream = null;
 async function toggleCameraPreview() {
   const btn = document.getElementById('voiceCameraPreviewBtn');
-  const video = document.getElementById('voiceCameraPreview');
   if (cameraPreviewStream) {
-    cameraPreviewStream.getTracks().forEach(t => t.stop());
-    cameraPreviewStream = null;
-    video.srcObject = null;
-    btn.textContent = 'Start Preview';
+    stopSettingsMediaPreviews();
     return;
   }
   try {
     cameraPreviewStream = await navigator.mediaDevices.getUserMedia({ video: true });
-    video.srcObject = cameraPreviewStream;
+    document.getElementById('voiceCameraPreview').srcObject = cameraPreviewStream;
     btn.textContent = 'Stop Preview';
     populateDeviceLists();
   } catch (e) {

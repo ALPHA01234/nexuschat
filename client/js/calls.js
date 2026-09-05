@@ -19,6 +19,18 @@ let isMuted = false;
 let isDeafened = false;
 let isScreenSharing = false;
 let pendingIncoming = null; // { callId, from, offer, callType }
+let pendingIceCandidates = []; // our own candidates gathered before we have a callId to send them with
+let remoteIceQueue = []; // candidates received from the peer before our remoteDescription is set
+let remoteMediaStream = null;
+let speakingMonitors = [];
+
+async function flushRemoteIceQueue() {
+  if (!peerConnection || !peerConnection.remoteDescription) return;
+  for (const candidate of remoteIceQueue.splice(0)) {
+    try { await peerConnection.addIceCandidate(new RTCIceCandidate(candidate)); }
+    catch (err) { console.warn('Could not add queued ICE candidate', err); }
+  }
+}
 
 function wireCalling() {
   document.getElementById('voiceCallBtn').addEventListener('click', () => initiateCall('voice'));
@@ -41,19 +53,38 @@ function requireSocketConnected() {
 }
 
 function rtcConfig() {
-  return { iceServers: state.iceServers || [{ urls: 'stun:stun.l.google.com:19302' }] };
+  return { iceServers: (state.iceServers && state.iceServers.length ? state.iceServers : [{ urls: 'stun:stun.l.google.com:19302' }]) };
 }
 
 function buildPeerConnection() {
   const pc = new RTCPeerConnection(rtcConfig());
   pc.onicecandidate = (e) => {
-    if (e.candidate) state.socket.emit('call:ice', { callId: currentCallId, candidate: e.candidate });
-  };
-  pc.ontrack = (e) => {
-    if (currentCallType === 'video') {
-      document.getElementById('remoteVideo').srcObject = e.streams[0];
+    if (!e.candidate) return;
+    if (currentCallId) {
+      state.socket.emit('call:ice', { callId: currentCallId, candidate: e.candidate });
+    } else {
+      pendingIceCandidates.push(e.candidate);
     }
-    document.getElementById('remoteAudio').srcObject = e.streams[0];
+  };
+  pc.ontrack = async (e) => {
+    const stream = e.streams[0] || new MediaStream([e.track]);
+    if (e.track.kind === 'audio') {
+      const remoteAudio = document.getElementById('remoteAudio');
+      remoteAudio.srcObject = stream;
+      remoteAudio.muted = isDeafened;
+      remoteAudio.volume = 1;
+      await routeAudioOutput(remoteAudio);
+      playMediaWithUnlockFallback(remoteAudio);
+      remoteMediaStream = stream;
+      startSpeakingMonitor(stream, document.getElementById('callHudPfp'));
+    }
+    if (e.track.kind === 'video') {
+      const remoteVideo = document.getElementById('remoteVideo');
+      remoteVideo.srcObject = stream;
+      remoteVideo.muted = isDeafened;
+      if (currentCallType === 'video') { document.getElementById('callVideoStage').style.display = 'block'; document.getElementById('callVoiceParticipants').style.display='none'; }
+      playMediaWithUnlockFallback(remoteVideo);
+    }
   };
   pc.onconnectionstatechange = () => {
     if (pc.connectionState === 'connected') startQualityMonitor(pc);
@@ -69,6 +100,13 @@ async function initiateCall(callType) {
 
   callPartner = state.activeChatWith;
   currentCallType = callType;
+  // Generate the signaling id on the caller before ICE gathering starts.
+  // Previously the server created the id later, so the caller's ICE
+  // candidates were emitted with callId=null and silently discarded.
+  currentCallId = (globalThis.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  pendingIceCandidates = [];
 
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(), video: callType === 'video' });
@@ -79,6 +117,9 @@ async function initiateCall(callType) {
 
   peerConnection = buildPeerConnection();
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  // Pre-negotiate one video m-line on voice calls so screen sharing can start later without a second SDP exchange.
+  if (callType === 'voice') peerConnection.addTransceiver('video', { direction: 'sendrecv' });
+  startSpeakingMonitor(localStream, document.getElementById('localCallPfp'));
   if (callType === 'video') {
     document.getElementById('localVideo').srcObject = localStream;
     document.getElementById('callVideoStage').style.display = 'block';
@@ -87,12 +128,14 @@ async function initiateCall(callType) {
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
 
-  state.socket.emit('call:offer', { to: callPartner, offer, callType });
+  state.socket.emit('call:offer', { callId: currentCallId, to: callPartner, offer, callType });
   showCallHud(callPartner, 'CALLING', callType);
 }
 
 function micConstraints() {
+  const deviceId = localStorage.getItem('nexus_audio_input') || '';
   return {
+    ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
     noiseSuppression: document.getElementById('voiceNoiseSuppression')?.checked !== false,
     echoCancellation: document.getElementById('voiceEchoCancellation')?.checked !== false,
   };
@@ -132,12 +175,16 @@ async function acceptIncomingCall() {
 
   peerConnection = buildPeerConnection();
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  // Pre-negotiate one video m-line on voice calls so screen sharing can start later without a second SDP exchange.
+  if (callType === 'voice') peerConnection.addTransceiver('video', { direction: 'sendrecv' });
+  startSpeakingMonitor(localStream, document.getElementById('localCallPfp'));
   if (callType === 'video') {
     document.getElementById('localVideo').srcObject = localStream;
     document.getElementById('callVideoStage').style.display = 'block';
   }
 
   await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  await flushRemoteIceQueue();
   const answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answer);
 
@@ -180,8 +227,12 @@ function endCallCleanup() {
   callPartner = null;
   currentCallId = null;
   pendingIncoming = null;
+  pendingIceCandidates = []; remoteIceQueue = []; remoteMediaStream=null; stopSpeakingMonitors();
+  forgetBlockedMedia(document.getElementById('remoteAudio'));
+  forgetBlockedMedia(document.getElementById('remoteVideo'));
 
-  document.getElementById('callHud').classList.remove('active');
+  document.getElementById('callHud').classList.remove('active','screen-sharing');
+  document.getElementById('callVoiceParticipants').style.display='flex';
   document.getElementById('muteBtn').classList.remove('muted');
   document.getElementById('deafenBtn').classList.remove('muted');
   document.getElementById('screenShareBtn').classList.remove('muted');
@@ -191,7 +242,9 @@ function showCallHud(withUsername, status, callType) {
   const fdata = findFriend(withUsername);
   document.getElementById('callHudName').textContent = (fdata && fdata.displayName) || withUsername;
   applyPfpToEl(document.getElementById('callHudPfp'), fdata ? fdata.avatar : null, fdata ? fdata.displayName : withUsername);
-  document.getElementById('callHudPfp').style.display = callType === 'video' ? 'none' : 'flex';
+  applyPfpToEl(document.getElementById('localCallPfp'), state.me?.avatar, state.me?.displayName || state.me?.username);
+  const rl=document.getElementById('callRemoteLabel'); if(rl) rl.textContent=(fdata&&fdata.displayName)||withUsername;
+  document.getElementById('callVoiceParticipants').style.display = callType === 'video' ? 'none' : 'flex';
   setCallStatus(status);
   document.getElementById('callHudTimer').textContent = '00:00';
   document.getElementById('callHud').classList.add('active');
@@ -263,8 +316,9 @@ async function toggleScreenShare() {
     document.getElementById('screenShareBtn').classList.remove('muted');
     // Revert to camera (or blank) track.
     const camTrack = localStream.getVideoTracks()[0];
-    const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+    const sender = peerConnection.getSenders().find(s => s.track?.kind === 'video') || peerConnection.getTransceivers().find(t => t.receiver?.track?.kind === 'video')?.sender;
     if (sender && camTrack) sender.replaceTrack(camTrack);
+    document.getElementById('callHud').classList.remove('screen-sharing');
     if (currentCallId) state.socket.emit('call:screen-share', { callId: currentCallId, active: false });
     return;
   }
@@ -272,14 +326,15 @@ async function toggleScreenShare() {
   try {
     screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
     const screenTrack = screenStream.getVideoTracks()[0];
-    const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-    if (sender) sender.replaceTrack(screenTrack);
-    else peerConnection.addTrack(screenTrack, screenStream);
+    const sender = peerConnection.getSenders().find(s => s.track?.kind === 'video') || peerConnection.getTransceivers().find(t => t.receiver?.track?.kind === 'video')?.sender;
+    if (sender) await sender.replaceTrack(screenTrack);
+    else { alert('Screen sharing needs the call to reconnect once. End the call and start it again with this updated build.'); return; }
 
     document.getElementById('callVideoStage').style.display = 'block';
     document.getElementById('localVideo').srcObject = screenStream;
     isScreenSharing = true;
     document.getElementById('screenShareBtn').classList.add('muted');
+    document.getElementById('callHud').classList.add('screen-sharing');
 
     screenTrack.addEventListener('ended', () => { if (isScreenSharing) toggleScreenShare(); });
     if (currentCallId) state.socket.emit('call:screen-share', { callId: currentCallId, active: true });
@@ -287,6 +342,33 @@ async function toggleScreenShare() {
     // user cancelled the picker — not an error worth surfacing
   }
 }
+
+
+function startSpeakingMonitor(stream, targetEl) {
+  if (!stream || !targetEl || !stream.getAudioTracks().length) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(new MediaStream(stream.getAudioTracks()));
+    const analyser = ctx.createAnalyser(); analyser.fftSize=256; analyser.smoothingTimeConstant=.72; src.connect(analyser);
+    const data=new Uint8Array(analyser.frequencyBinCount); let raf=0, active=true, lastAbove=0;
+    // Debounce: keep the speaking ring on for a short hold window after the
+    // last frame that crossed the threshold, instead of toggling on raw
+    // per-frame RMS — that produced the flickery/weak-looking indicator.
+    const HOLD_MS = 250;
+    const tick=()=>{
+      if(!active)return;
+      analyser.getByteTimeDomainData(data);
+      let sum=0; for(const v of data){const n=(v-128)/128; sum+=n*n;}
+      const rms=Math.sqrt(sum/data.length);
+      const now = performance.now();
+      if (rms > 0.035) lastAbove = now;
+      targetEl.classList.toggle('speaking', (now - lastAbove) < HOLD_MS);
+      raf=requestAnimationFrame(tick);
+    }; tick();
+    speakingMonitors.push(()=>{active=false;cancelAnimationFrame(raf);targetEl.classList.remove('speaking');try{ctx.close()}catch(e){}});
+  } catch(e) { console.warn('Speaking detector unavailable',e); }
+}
+function stopSpeakingMonitors(){ speakingMonitors.splice(0).forEach(fn=>{try{fn()}catch(e){}}); }
 
 // ---------------- Connection quality (via getStats) ----------------
 function startQualityMonitor(pc) {
@@ -321,18 +403,38 @@ function updateQualityIndicator(lossRatio, rtt) {
 }
 
 // ---------------- Signaling events (dispatched from socket.js) ----------------
-function onCallAnswer(msg) {
-  currentCallId = msg.callId;
+async function onCallAnswer(msg) {
+  currentCallId = msg.callId || currentCallId;
   if (peerConnection) {
-    peerConnection.setRemoteDescription(new RTCSessionDescription(msg.answer));
-    setCallStatus('CONNECTED');
-    startCallTimer();
+    try {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.answer));
+      await flushRemoteIceQueue();
+      for (const candidate of pendingIceCandidates.splice(0)) {
+        state.socket.emit('call:ice', { callId: currentCallId, candidate });
+      }
+      setCallStatus('CONNECTED');
+      startCallTimer();
+    } catch (err) {
+      console.error('Failed to apply call answer', err);
+      setCallStatus('CONNECTION ERROR');
+    }
   }
 }
 
-function onCallIce(msg) {
-  if (peerConnection && msg.candidate) {
-    peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(() => {});
+async function onCallIce(msg) {
+  if (!peerConnection || !msg.candidate) return;
+  // Queue candidates that arrive before our remoteDescription is set
+  // (e.g. the callee's ICE can beat the offer/answer round trip) instead
+  // of guessing with a fixed delay — flushRemoteIceQueue() drains this
+  // right after setRemoteDescription() succeeds, on both call legs.
+  if (!peerConnection.remoteDescription) {
+    remoteIceQueue.push(msg.candidate);
+    return;
+  }
+  try {
+    await peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate));
+  } catch (err) {
+    console.warn('Could not add ICE candidate', err);
   }
 }
 
@@ -356,6 +458,7 @@ function onCallError(msg) {
 function onPeerMute() { /* HUD name already visible; nothing further to render for voice-only UI */ }
 function onPeerVideoToggle() { /* remote video track auto-updates via ontrack/replaceTrack on their end */ }
 function onPeerScreenShare(data) {
-  if (data.active) setCallStatus('SCREEN SHARING');
-  else setCallStatus('CONNECTED');
+  document.getElementById('callHud')?.classList.toggle('screen-sharing', !!data.active);
+  if (data.active) { setCallStatus('SCREEN SHARING'); document.getElementById('callVideoStage').style.display='block'; document.getElementById('callVoiceParticipants').style.display='none'; }
+  else { setCallStatus('CONNECTED'); if(currentCallType==='voice'){ document.getElementById('callVideoStage').style.display='none'; document.getElementById('callVoiceParticipants').style.display='flex'; } }
 }

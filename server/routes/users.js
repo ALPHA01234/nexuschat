@@ -10,45 +10,35 @@ const { asyncHandler } = require('../utils/asyncHandler');
 
 const router = express.Router();
 
-// GET /api/users/search?q=term — excludes yourself and anyone blocked either direction
+function isAnimatedDataImage(obj) {
+  return obj?.type === 'image' && typeof obj.value === 'string' && obj.value.startsWith('data:image/gif');
+}
+
 router.get('/search', requireAuth, asyncHandler(async (req, res) => {
   const q = String(req.query.q || '').trim().toLowerCase();
   if (!q) return res.json({ users: [] });
-
   const safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
   const blockedByMe = req.user.blockedUsers || [];
   const blockedMe = await User.find({ blockedUsers: req.user._id }).select('_id');
-
   const excludeIds = [req.user._id, ...blockedByMe, ...blockedMe.map(u => u._id)];
-
   const users = await User.find({
-    username: { $regex: safeQ, $options: 'i' },
+    $or: [
+      { username: { $regex: safeQ, $options: 'i' } },
+      { displayName: { $regex: safeQ, $options: 'i' } },
+    ],
     _id: { $nin: excludeIds },
-  })
-    .select('username displayName avatar online')
-    .limit(20);
-
-  res.json({
-    users: users.map(u => ({
-      username: u.username,
-      displayName: u.displayName || u.username,
-      avatar: u.avatar,
-      online: u.online,
-    })),
-  });
+    accountStatus: { $nin: ['banned', 'suspended'] },
+  }).select('username displayName avatar online premium').limit(20);
+  res.json({ users: users.map(u => u.toPublicJSON()) });
 }));
 
-// GET /api/users/me
-router.get('/me', requireAuth, asyncHandler(async (req, res) => {
-  res.json({ user: req.user.toPrivateJSON() });
-}));
+router.get('/me', requireAuth, asyncHandler(async (req, res) => res.json({ user: req.user.toPrivateJSON() })));
 
-// PUT /api/users/me — profile + settings (everything except password)
 router.put(
   '/me',
   requireAuth,
   [
+    body('username').optional().trim().toLowerCase().isLength({ min: 3, max: 16 }).matches(/^[a-zA-Z0-9_]+$/),
     body('displayName').optional().trim().isLength({ max: 32 }),
     body('bio').optional().isLength({ max: 190 }),
     body('status').optional().isLength({ max: 60 }),
@@ -57,85 +47,79 @@ router.put(
   ],
   handleValidation,
   asyncHandler(async (req, res) => {
-    const { displayName, avatar, banner, bio, status, pronouns, themeColor, privacy, notifications, appearance } = req.body;
+    const { username, displayName, avatar, banner, bio, status, pronouns, themeColor, privacy, notifications, appearance } = req.body;
 
+    if (typeof username === 'string' && username !== req.user.username) {
+      const taken = await User.findOne({ username, _id: { $ne: req.user._id } });
+      if (taken) return res.status(409).json({ message: 'That username is already taken.' });
+      req.user.username = username;
+      req.user.usernameChangedAt = new Date();
+    }
     if (typeof displayName === 'string') req.user.displayName = displayName.trim().slice(0, 32) || req.user.username;
+
+    const premium = req.user.hasPremium();
     if (avatar && (avatar.type === 'image' || avatar.type === 'color') && typeof avatar.value === 'string') {
+      if (isAnimatedDataImage(avatar) && !premium) return res.status(403).json({ message: 'Animated GIF profile pictures are a NexusChat Premium feature.' });
+      if (avatar.type === 'image' && avatar.value.length > 2200000) return res.status(413).json({ message: 'Profile image is too large.' });
       req.user.avatar = { type: avatar.type, value: avatar.value };
     }
     if (banner && (banner.type === 'image' || banner.type === 'color') && typeof banner.value === 'string') {
+      if (isAnimatedDataImage(banner) && !premium) return res.status(403).json({ message: 'Animated GIF banners are a NexusChat Premium feature.' });
+      if (banner.type === 'image' && banner.value.length > 3600000) return res.status(413).json({ message: 'Banner image is too large.' });
       req.user.banner = { type: banner.type, value: banner.value };
     }
+
     if (typeof bio === 'string') req.user.bio = bio.slice(0, 190);
     if (typeof status === 'string') req.user.status = status.slice(0, 60);
     if (typeof pronouns === 'string') req.user.pronouns = pronouns.slice(0, 30);
     if (typeof themeColor === 'string') req.user.themeColor = themeColor;
 
-    if (privacy && typeof privacy === 'object') {
-      req.user.privacy = { ...req.user.privacy.toObject(), ...sanitizeSettingsPatch(privacy, ['friendRequests', 'readReceipts', 'typingIndicator', 'onlineVisibility']) };
-    }
-    if (notifications && typeof notifications === 'object') {
-      req.user.notifications = { ...req.user.notifications.toObject(), ...sanitizeSettingsPatch(notifications, ['desktop', 'mentions', 'sounds', 'friendRequestAlerts']) };
-    }
-    if (appearance && typeof appearance === 'object') {
-      req.user.appearance = { ...req.user.appearance.toObject(), ...sanitizeSettingsPatch(appearance, ['theme', 'fontSize', 'compactMode', 'animations', 'enterToSend', 'timestamp24h', 'reduceMotion', 'highContrast']) };
-    }
+    if (privacy && typeof privacy === 'object') req.user.privacy = { ...req.user.privacy.toObject(), ...sanitizeSettingsPatch(privacy, ['friendRequests', 'readReceipts', 'typingIndicator', 'onlineVisibility']) };
+    if (notifications && typeof notifications === 'object') req.user.notifications = { ...req.user.notifications.toObject(), ...sanitizeSettingsPatch(notifications, ['desktop', 'mentions', 'sounds', 'friendRequestAlerts']) };
+    if (appearance && typeof appearance === 'object') req.user.appearance = { ...req.user.appearance.toObject(), ...sanitizeSettingsPatch(appearance, ['theme', 'fontSize', 'compactMode', 'animations', 'enterToSend', 'timestamp24h', 'reduceMotion', 'highContrast']) };
 
     await req.user.save();
     res.json({ user: req.user.toPrivateJSON() });
   })
 );
 
-// Only copy over whitelisted keys — never trust arbitrary nested objects from the client.
 function sanitizeSettingsPatch(obj, allowedKeys) {
   const out = {};
-  allowedKeys.forEach(k => {
-    if (obj[k] !== undefined) out[k] = obj[k];
-  });
+  allowedKeys.forEach(k => { if (obj[k] !== undefined) out[k] = obj[k]; });
   return out;
 }
 
-// PUT /api/users/me/password — change password while logged in
-router.put(
-  '/me/password',
-  requireAuth,
-  [
-    body('currentPassword').notEmpty(),
-    body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters.'),
-  ],
+router.put('/me/password', requireAuth,
+  [body('currentPassword').notEmpty(), body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters.')],
   handleValidation,
   asyncHandler(async (req, res) => {
-    const match = await bcrypt.compare(req.body.currentPassword, req.user.password);
-    if (!match) return res.status(400).json({ message: 'Current password is incorrect.' });
-
+    if (!(await bcrypt.compare(req.body.currentPassword, req.user.password))) return res.status(400).json({ message: 'Current password is incorrect.' });
     req.user.password = await bcrypt.hash(req.body.newPassword, 10);
     await req.user.save();
     res.json({ message: 'Password updated.' });
   })
 );
 
-// DELETE /api/users/me — permanently delete account
-router.delete(
-  '/me',
-  requireAuth,
-  [body('password').notEmpty().withMessage('Enter your password to confirm account deletion.')],
-  handleValidation,
-  asyncHandler(async (req, res) => {
-    const match = await bcrypt.compare(req.body.password, req.user.password);
-    if (!match) return res.status(400).json({ message: 'Incorrect password.' });
+router.post('/me/warnings/:warningId/acknowledge', requireAuth, asyncHandler(async (req, res) => {
+  const warning = req.user.warnings.id(req.params.warningId);
+  if (!warning) return res.status(404).json({ message: 'Warning not found.' });
+  warning.acknowledgedAt = new Date();
+  await req.user.save();
+  res.json({ user: req.user.toPrivateJSON() });
+}));
 
+router.delete('/me', requireAuth, [body('password').notEmpty().withMessage('Enter your password to confirm account deletion.')], handleValidation,
+  asyncHandler(async (req, res) => {
+    if (!(await bcrypt.compare(req.body.password, req.user.password))) return res.status(400).json({ message: 'Incorrect password.' });
     await FriendRequest.deleteMany({ $or: [{ from: req.user._id }, { to: req.user._id }] });
     await req.user.deleteOne();
-
     res.json({ message: 'Account deleted.' });
   })
 );
 
-// GET /api/users/:username — public profile lookup
 router.get('/:username', requireAuth, asyncHandler(async (req, res) => {
-  const username = String(req.params.username).trim().toLowerCase();
-  const user = await User.findOne({ username });
-  if (!user) return res.status(404).json({ message: 'User not found.' });
+  const user = await User.findOne({ username: String(req.params.username).trim().toLowerCase() });
+  if (!user || ['banned', 'suspended'].includes(user.accountStatus)) return res.status(404).json({ message: 'User not found.' });
   res.json({ user: user.toPublicJSON() });
 }));
 

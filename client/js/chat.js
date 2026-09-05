@@ -38,6 +38,14 @@ function appendMessageToState(msg) {
 
 // ---------------- Opening a conversation ----------------
 async function openChat(username) {
+  hideHomeView?.();
+  state.activeCommunity = null;
+  state.activeCommunityChannel = null;
+  document.getElementById('dmSidebarView').style.display = 'flex';
+  document.getElementById('communitySidebarView').style.display = 'none';
+  document.getElementById('communityView').classList.remove('active');
+  document.querySelectorAll('.rail-icon').forEach(x => x.classList.remove('active'));
+  document.getElementById('dmHomeRailBtn')?.classList.add('active');
   state.activeChatWith = username;
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('chatView').classList.add('active');
@@ -45,6 +53,8 @@ async function openChat(username) {
 
   const fdata = findFriend(username);
   document.getElementById('chatUsername').textContent = fdata ? fdata.displayName : username;
+  const tagEl = document.getElementById('chatUserTag');
+  if (tagEl) tagEl.textContent = '@' + username;
   applyPfpToEl(document.getElementById('chatPfp'), fdata ? fdata.avatar : null, fdata ? fdata.displayName : username);
   updateChatHeaderStatus(username);
 
@@ -543,7 +553,14 @@ async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     recordedChunks = [];
-    mediaRecorder = new MediaRecorder(stream);
+    const preferredMime = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+    ].find(type => window.MediaRecorder?.isTypeSupported?.(type));
+    mediaRecorder = preferredMime
+      ? new MediaRecorder(stream, { mimeType: preferredMime })
+      : new MediaRecorder(stream);
     mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.start();
     recordStartTime = Date.now();
@@ -570,7 +587,7 @@ function stopRecording(send) {
     clearInterval(recordTimerInterval);
 
     if (send && recordedChunks.length > 0) {
-      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+      const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || recordedChunks[0]?.type || 'audio/webm' });
       const reader = new FileReader();
       reader.onload = () => sendMessage('voice', reader.result, { duration });
       reader.readAsDataURL(blob);

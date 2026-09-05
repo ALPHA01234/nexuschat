@@ -1,0 +1,61 @@
+warning: in the working copy of 'client/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/api.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/app.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/auth.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/calls.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/chat.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/friends.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/profile.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/settings.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/socket.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/js/utils.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/style.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/middleware/auth.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/middleware/socket.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/middleware/upload.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/models/user.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/routes/auth.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/routes/friends.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/routes/messages.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/routes/uploads.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/routes/users.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/server.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/socket/calls.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/socket/index.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/socket/messaging.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/utils/email.js', LF will be replaced by CRLF the next time Git touches it
+ client/README.md            |  70 [32m+[m[31m-----------[m
+ client/index.html           | 258 [32m+++++++++++++++++++++++++++++++++++++++[m[31m-----[m
+ client/js/api.js            |   4 [32m+[m
+ client/js/app.js            |  68 [32m+++[m[31m---------[m
+ client/js/auth.js           |  58 [32m+++++++++[m[31m-[m
+ client/js/calls.js          | 149 [32m+++++++++++++++++++++[m[31m----[m
+ client/js/chat.js           |  21 [32m+++[m[31m-[m
+ client/js/friends.js        |  24 [32m++[m[31m---[m
+ client/js/profile.js        |   2 [32m+[m
+ client/js/settings.js       | 117 [32m++++++++++++++[m[31m------[m
+ client/js/socket.js         |   8 [32m++[m
+ client/js/utils.js          |  87 [32m+++++++++++++[m[31m--[m
+ client/style.css            |  56 [32m++++++++++[m
+ server/README.md            |  74 [32m+++[m[31m----------[m
+ server/middleware/auth.js   |  38 [32m++++[m[31m---[m
+ server/middleware/socket.js |   1 [32m+[m
+ server/middleware/upload.js |  17 [32m++[m[31m-[m
+ server/models/user.js       |  72 [32m+++++++++++[m[31m--[m
+ server/package-lock.json    |   4 [32m+[m[31m-[m
+ server/package.json         |   4 [32m+[m[31m-[m
+ server/routes/auth.js       | 200 [32m++++++++[m[31m--------------------------[m
+ server/routes/friends.js    |   3 [32m+[m[31m-[m
+ server/routes/messages.js   |   3 [32m+[m[31m-[m
+ server/routes/uploads.js    |  26 [32m+++[m[31m--[m
+ server/routes/users.js      | 108 [32m++++++++[m[31m-----------[m
+ server/server.js            |  16 [32m++[m[31m-[m
+ server/socket/calls.js      |  14 [32m++[m[31m-[m
+ server/socket/index.js      |   9 [32m+[m[31m-[m
+ server/socket/messaging.js  |   6 [32m+[m[31m-[m
+ server/utils/email.js       | 198 [32m++++++++++++++++++++[m[31m--------------[m
+ 30 files changed, 1065 insertions(+), 650 deletions(-)
